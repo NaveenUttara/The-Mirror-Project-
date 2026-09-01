@@ -1,6 +1,6 @@
-﻿
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,7 +17,7 @@
             --orange: #f59f00;
             --red: #d94841;
             --blue: #2878c8;
-            --shadow: 0 14px 35px rgba(18,33,43,.08);
+            --shadow: 0 14px 35px rgba(18, 33, 43, .08);
             --radius: 22px
         }
 
@@ -27,12 +27,15 @@
 
         body {
             margin: 0;
-            font-family: Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
             color: var(--ink);
             background: var(--bg)
         }
 
-        button, input, textarea, select {
+        button,
+        input,
+        textarea,
+        select {
             font: inherit
         }
 
@@ -91,17 +94,19 @@
             align-items: center
         }
 
-            .nav button, .lang {
-                background: transparent;
-                color: var(--muted);
-                padding: 10px 12px;
-                border-radius: 10px
-            }
+        .nav button,
+        .lang {
+            background: transparent;
+            color: var(--muted);
+            padding: 10px 12px;
+            border-radius: 10px
+        }
 
-                .nav button:hover, .lang:hover {
-                    background: var(--bg);
-                    color: var(--ink)
-                }
+        .nav button:hover,
+        .lang:hover {
+            background: var(--bg);
+            color: var(--ink)
+        }
 
         .shell {
             max-width: 1180px;
@@ -129,7 +134,7 @@
         }
 
         .hero h1 {
-            font-size: clamp(42px,6vw,78px);
+            font-size: clamp(42px, 6vw, 78px);
             line-height: .96;
             letter-spacing: -.065em;
             margin: 18px 0
@@ -155,12 +160,12 @@
             padding: 15px 20px;
             border-radius: 13px;
             font-weight: 750;
-            box-shadow: 0 8px 18px rgba(4,78,55,.2)
+            box-shadow: 0 8px 18px rgba(4, 78, 55, .2)
         }
 
-            .primary:hover {
-                background: #023324
-            }
+        .primary:hover {
+            background: #023324
+        }
 
         .secondary {
             background: #fff;
@@ -172,7 +177,7 @@
         }
 
         .hero-card {
-            background: linear-gradient(145deg,#033626,#044e37);
+            background: linear-gradient(145deg, #033626, #044e37);
             border-radius: 30px;
             padding: 28px;
             color: #fff;
@@ -181,47 +186,47 @@
             overflow: hidden
         }
 
-            .hero-card:after {
-                content: "";
-                position: absolute;
-                width: 250px;
-                height: 250px;
-                border-radius: 50%;
-                border: 1px solid rgba(255,255,255,.2);
-                right: -65px;
-                top: -60px;
-                box-shadow: 0 0 0 34px rgba(255,255,255,.05),0 0 0 68px rgba(255,255,255,.04)
-            }
+        .hero-card:after {
+            content: "";
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, .2);
+            right: -65px;
+            top: -60px;
+            box-shadow: 0 0 0 34px rgba(255, 255, 255, .05), 0 0 0 68px rgba(255, 255, 255, .04)
+        }
 
-            .hero-card h3 {
-                font-size: 24px;
-                margin: 0 0 24px;
-                position: relative;
-                z-index: 1
-            }
+        .hero-card h3 {
+            font-size: 24px;
+            margin: 0 0 24px;
+            position: relative;
+            z-index: 1
+        }
 
         .mini-stat {
             display: flex;
             justify-content: space-between;
-            border-top: 1px solid rgba(255,255,255,.24);
+            border-top: 1px solid rgba(255, 255, 255, .24);
             padding: 16px 0;
             position: relative;
             z-index: 1
         }
 
-            .mini-stat strong {
-                font-size: 25px
-            }
+        .mini-stat strong {
+            font-size: 25px
+        }
 
         .section {
             margin-top: 58px
         }
 
-            .section h2 {
-                font-size: 30px;
-                letter-spacing: -.04em;
-                margin: 0 0 18px
-            }
+        .section h2 {
+            font-size: 30px;
+            letter-spacing: -.04em;
+            margin: 0 0 18px
+        }
 
         .sub {
             color: var(--muted);
@@ -230,64 +235,65 @@
 
         .steps {
             display: grid;
-            grid-template-columns: repeat(6,1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 12px
         }
 
-        .step, .card {
+        .step,
+        .card {
             background: var(--card);
             border: 1px solid var(--line);
             border-radius: var(--radius);
             padding: 20px;
-            box-shadow: 0 5px 18px rgba(18,33,43,.03)
+            box-shadow: 0 5px 18px rgba(18, 33, 43, .03)
         }
 
-            .step b {
-                display: grid;
-                place-items: center;
-                width: 34px;
-                height: 34px;
-                border-radius: 11px;
-                background: var(--green2);
-                color: var(--green);
-                margin-bottom: 17px
-            }
+        .step b {
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 11px;
+            background: var(--green2);
+            color: var(--green);
+            margin-bottom: 17px
+        }
 
-            .step h4 {
-                margin: 0 0 7px
-            }
+        .step h4 {
+            margin: 0 0 7px
+        }
 
-            .step p {
-                font-size: 13px;
-                color: var(--muted);
-                line-height: 1.45;
-                margin: 0
-            }
+        .step p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.45;
+            margin: 0
+        }
 
         .impact {
             display: grid;
-            grid-template-columns: repeat(5,1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 12px
         }
 
-            .impact .card strong {
-                font-size: 30px;
-                display: block;
-                letter-spacing: -.05em
-            }
+        .impact .card strong {
+            font-size: 30px;
+            display: block;
+            letter-spacing: -.05em
+        }
 
-            .impact .card span {
-                color: var(--muted);
-                font-size: 13px
-            }
+        .impact .card span {
+            color: var(--muted);
+            font-size: 13px
+        }
 
         .page {
             display: none
         }
 
-            .page.active {
-                display: block
-            }
+        .page.active {
+            display: block
+        }
 
         .panel {
             max-width: 650px;
@@ -299,41 +305,44 @@
             box-shadow: var(--shadow)
         }
 
-            .panel h2 {
-                margin: 0 0 8px;
-                font-size: 30px;
-                letter-spacing: -.04em
-            }
+        .panel h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+            letter-spacing: -.04em
+        }
 
         .field {
             margin-top: 18px
         }
 
-            .field label {
-                display: block;
-                font-size: 13px;
-                font-weight: 750;
-                margin-bottom: 7px
-            }
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 750;
+            margin-bottom: 7px
+        }
 
-            .field input, .field textarea, .field select {
-                width: 100%;
-                padding: 13px 14px;
-                border-radius: 12px;
-                border: 1px solid #ccd9d5;
-                background: #fbfdfc;
-                outline: 0
-            }
+        .field input,
+        .field textarea,
+        .field select {
+            width: 100%;
+            padding: 13px 14px;
+            border-radius: 12px;
+            border: 1px solid #ccd9d5;
+            background: #fbfdfc;
+            outline: 0
+        }
 
-            .field textarea {
-                min-height: 100px;
-                resize: vertical
-            }
+        .field textarea {
+            min-height: 100px;
+            resize: vertical
+        }
 
-                .field input:focus, .field textarea:focus {
-                    border-color: var(--green);
-                    box-shadow: 0 0 0 3px var(--green2)
-                }
+        .field input:focus,
+        .field textarea:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px var(--green2)
+        }
 
         .consent {
             display: flex;
@@ -378,27 +387,27 @@
             flex-wrap: wrap
         }
 
-            .dash-head h2 {
-                margin: 0
-            }
+        .dash-head h2 {
+            margin: 0
+        }
 
         .stat-grid {
             display: grid;
-            grid-template-columns: repeat(4,1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
             margin: 24px 0
         }
 
-            .stat-grid .card strong {
-                font-size: 30px
-            }
+        .stat-grid .card strong {
+            font-size: 30px
+        }
 
-            .stat-grid .card span {
-                display: block;
-                color: var(--muted);
-                font-size: 13px;
-                margin-top: 4px
-            }
+        .stat-grid .card span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px
+        }
 
         .reports {
             display: grid;
@@ -416,15 +425,15 @@
             align-items: center
         }
 
-            .report-row h4 {
-                margin: 0 0 5px
-            }
+        .report-row h4 {
+            margin: 0 0 5px
+        }
 
-            .report-row p {
-                margin: 0;
-                color: var(--muted);
-                font-size: 13px
-            }
+        .report-row p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px
+        }
 
         .badge {
             display: inline-flex;
@@ -437,46 +446,47 @@
             color: #2465a7
         }
 
-            .badge.green {
-                background: #d4f3e8;
-                color: #044e37
-            }
+        .badge.green {
+            background: #d4f3e8;
+            color: #044e37
+        }
 
-            .badge.orange {
-                background: #fff1d6;
-                color: #9b6500
-            }
+        .badge.orange {
+            background: #fff1d6;
+            color: #9b6500
+        }
 
-            .badge.red {
-                background: #ffe3e0;
-                color: #b93831
-            }
+        .badge.red {
+            background: #ffe3e0;
+            color: #b93831
+        }
 
         .map {
             height: 190px;
-            background: linear-gradient(135deg,#dbf2ea,#bce0d0);
+            background: linear-gradient(135deg, #dbf2ea, #bce0d0);
             border: 1px solid #a3ccbc;
             border-radius: 17px;
             position: relative;
             overflow: hidden
         }
 
-            .map:before, .map:after {
-                content: "";
-                position: absolute;
-                background: rgba(255,255,255,.8);
-                height: 8px;
-                transform: rotate(-28deg);
-                width: 130%;
-                left: -10%;
-                top: 45%
-            }
+        .map:before,
+        .map:after {
+            content: "";
+            position: absolute;
+            background: rgba(255, 255, 255, .8);
+            height: 8px;
+            transform: rotate(-28deg);
+            width: 130%;
+            left: -10%;
+            top: 45%
+        }
 
-            .map:after {
-                transform: rotate(28deg);
-                top: 60%;
-                background: rgba(255,255,255,.6)
-            }
+        .map:after {
+            transform: rotate(28deg);
+            top: 60%;
+            background: rgba(255, 255, 255, .6)
+        }
 
         .pin {
             position: absolute;
@@ -487,40 +497,40 @@
             background: var(--red);
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
-            box-shadow: 0 4px 10px rgba(0,0,0,.18);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .18);
             z-index: 1
         }
 
-            .pin:after {
-                content: "";
-                position: absolute;
-                width: 7px;
-                height: 7px;
-                border-radius: 50%;
-                background: white;
-                left: 6px;
-                top: 6px
-            }
+        .pin:after {
+            content: "";
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: white;
+            left: 6px;
+            top: 6px
+        }
 
         .severity {
             display: grid;
-            grid-template-columns: repeat(4,1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 8px
         }
 
-            .severity button {
-                padding: 13px 6px;
-                background: #fff;
-                border: 1px solid var(--line);
-                border-radius: 12px;
-                font-weight: 750
-            }
+        .severity button {
+            padding: 13px 6px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            font-weight: 750
+        }
 
-                .severity button.selected {
-                    border-color: var(--green);
-                    background: var(--green2);
-                    color: var(--green)
-                }
+        .severity button.selected {
+            border-color: var(--green);
+            background: var(--green2);
+            color: var(--green)
+        }
 
         .upload {
             display: grid;
@@ -528,14 +538,14 @@
             gap: 10px
         }
 
-            .upload button {
-                padding: 22px 12px;
-                border: 1px dashed #9bc4b4;
-                border-radius: 14px;
-                background: #fbfdfc;
-                color: var(--green);
-                font-weight: 750
-            }
+        .upload button {
+            padding: 22px 12px;
+            border: 1px dashed #9bc4b4;
+            border-radius: 14px;
+            background: #fbfdfc;
+            color: var(--green);
+            font-weight: 750
+        }
 
         .timeline {
             margin-top: 20px;
@@ -548,31 +558,31 @@
             margin: 0 0 22px
         }
 
-            .event:before {
-                content: "";
-                position: absolute;
-                left: -31px;
-                top: 3px;
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-                background: var(--green);
-                border: 3px solid var(--bg)
-            }
+        .event:before {
+            content: "";
+            position: absolute;
+            left: -31px;
+            top: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 3px solid var(--bg)
+        }
 
-            .event.pending:before {
-                background: #fff;
-                border: 2px solid #9bc4b4
-            }
+        .event.pending:before {
+            background: #fff;
+            border: 2px solid #9bc4b4
+        }
 
-            .event strong {
-                display: block
-            }
+        .event strong {
+            display: block
+        }
 
-            .event span {
-                color: var(--muted);
-                font-size: 13px
-            }
+        .event span {
+            color: var(--muted);
+            font-size: 13px
+        }
 
         .toast {
             position: fixed;
@@ -605,15 +615,15 @@
             }
 
             .steps {
-                grid-template-columns: repeat(2,1fr)
+                grid-template-columns: repeat(2, 1fr)
             }
 
             .impact {
-                grid-template-columns: repeat(2,1fr)
+                grid-template-columns: repeat(2, 1fr)
             }
 
             .stat-grid {
-                grid-template-columns: repeat(2,1fr)
+                grid-template-columns: repeat(2, 1fr)
             }
 
             .nav button:nth-child(n+3) {
@@ -656,37 +666,279 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app">
-        <header class="topbar"><div class="brand"><div class="brand-mark">◒</div><div><span>The Mirror Project</span><small>Safer roads for Karnataka</small></div></div><nav class="nav"><button onclick="showPage('home')">Home</button><button onclick="showPage('dashboard')">My Reports</button><button onclick="showPage('impact')">Public Impact</button><button class="lang" onclick="toggleLang()">ಕನ್ನಡ / EN</button></nav></header>
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">◒</div>
+                <div><span>The Mirror Project</span><small>Safer roads for India</small></div>
+            </div>
+            <nav class="nav"><button onclick="showPage('home')">Home</button><button onclick="showPage('dashboard')">My
+                    Reports</button><button onclick="showPage('impact')">Public Impact</button><button class="lang"
+                    onclick="toggleLang()">ಕನ್ನಡ / EN</button></nav>
+        </header>
         <main class="shell">
             <section id="home" class="page active">
-                <div class="hero"><div class="hero-copy"><div class="eyebrow">Karnataka pothole accountability</div><h1>See it.<br>Report it.<br><span style="color:var(--green)">Fix it.</span></h1><p>Help make Karnataka's roads safer. Report dangerous potholes with a photograph and location, then track the action all the way to citizen verification.</p><div class="actions"><button class="primary" onclick="showPage('login')">Report a pothole</button><button class="secondary" onclick="showPage('dashboard')">Track my report</button></div></div><div class="hero-card"><h3>Visible action, not just complaints.</h3><div class="mini-stat"><span>Potholes reported</span><strong>1,250</strong></div><div class="mini-stat"><span>Repairs citizen-confirmed</span><strong>650</strong></div><div class="mini-stat"><span>Open accountability cases</span><strong>35</strong></div></div></div>
-                <div class="section"><h2>How it works</h2><p class="sub">A simple 1–2 minute flow for citizens.</p><div class="steps"><div class="step"><b>1</b><h4>See</h4><p>Find a dangerous pothole.</p></div><div class="step"><b>2</b><h4>Capture</h4><p>Take a clear photograph.</p></div><div class="step"><b>3</b><h4>Locate</h4><p>Share the GPS location.</p></div><div class="step"><b>4</b><h4>Report</h4><p>Add severity and context.</p></div><div class="step"><b>5</b><h4>Action</h4><p>Authority processes it.</p></div><div class="step"><b>6</b><h4>Verify</h4><p>You confirm the result.</p></div></div></div>
-                <div class="section"><h2>Current Karnataka impact</h2><div class="impact"><div class="card"><strong>1,250</strong><span>Potholes reported</span></div><div class="card"><strong>1,080</strong><span>Verified</span></div><div class="card"><strong>245</strong><span>Under action</span></div><div class="card"><strong>720</strong><span>Repaired</span></div><div class="card"><strong>35</strong><span>Overdue</span></div></div></div>
+                <div class="hero">
+                    <div class="hero-copy">
+                        <div class="eyebrow">India pothole accountability</div>
+                        <h1>See it.<br>Report it.<br><span style="color:var(--green)">Fix it.</span></h1>
+                        <p>Help make Karnataka's roads safer. Report dangerous potholes with a photograph and location,
+                            then track the action all the way to citizen verification.</p>
+                        <div class="actions"><button class="primary" onclick="showPage('login')">Report a
+                                pothole</button><button class="secondary" onclick="showPage('dashboard')">Track my
+                                report</button></div>
+                    </div>
+                    <div class="hero-card">
+                        <h3>Visible action, not just complaints.</h3>
+                        <div class="mini-stat"><span>Potholes reported</span><strong>1,250</strong></div>
+                        <div class="mini-stat"><span>Repairs citizen-confirmed</span><strong>650</strong></div>
+                        <div class="mini-stat"><span>Open accountability cases</span><strong>35</strong></div>
+                    </div>
+                </div>
+                <div class="section">
+                    <h2>How it works</h2>
+                    <p class="sub">A simple 1–2 minute flow for citizens.</p>
+                    <div class="steps">
+                        <div class="step"><b>1</b>
+                            <h4>See</h4>
+                            <p>Find a dangerous pothole.</p>
+                        </div>
+                        <div class="step"><b>2</b>
+                            <h4>Capture</h4>
+                            <p>Take a clear photograph.</p>
+                        </div>
+                        <div class="step"><b>3</b>
+                            <h4>Locate</h4>
+                            <p>Share the GPS location.</p>
+                        </div>
+                        <div class="step"><b>4</b>
+                            <h4>Report</h4>
+                            <p>Add severity and context.</p>
+                        </div>
+                        <div class="step"><b>5</b>
+                            <h4>Action</h4>
+                            <p>Authority processes it.</p>
+                        </div>
+                        <div class="step"><b>6</b>
+                            <h4>Verify</h4>
+                            <p>You confirm the result.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <h2>Current Karnataka impact</h2>
+                    <div class="impact">
+                        <div class="card"><strong>1,250</strong><span>Potholes reported</span></div>
+                        <div class="card"><strong>1,080</strong><span>Verified</span></div>
+                        <div class="card"><strong>245</strong><span>Under action</span></div>
+                        <div class="card"><strong>720</strong><span>Repaired</span></div>
+                        <div class="card"><strong>35</strong><span>Overdue</span></div>
+                    </div>
+                </div>
             </section>
-            <section id="login" class="page"><div class="panel"><div class="eyebrow">Citizen access</div><h2>Sign in with OTP</h2><p class="sub">No password needed. Your mobile number is your identity.</p><div class="field"><label>Mobile number</label><input id="phone" placeholder="+91 98765 43210" /></div><label class="consent"><input id="phoneConsent" type="checkbox" onchange="toggleOtpButton()"><span>I agree to The Mirror Project <a onclick="openLegal('terms')">Terms of Use</a> and <a onclick="openLegal('privacy')">Privacy Policy</a>. I consent to the collection and use of my phone number for OTP authentication, account access, service notifications and report updates.</span></label><button id="sendOtpButton" class="primary" style="margin-top:20px;width:100%;opacity:.5;cursor:not-allowed" disabled onclick="sendOtp()">Accept and send OTP</button><div id="otpBox" style="display:none"><div class="field"><label>Enter 6-digit OTP</label><input id="otp" placeholder="123456" inputmode="numeric" /></div><button class="primary" style="margin-top:20px;width:100%" onclick="verifyOtp()">Verify and continue</button></div><div class="demo-note">Prototype mode: use any phone number and OTP <b>123456</b>.</div></div></section>
-            <section id="dashboard" class="page"><div class="dash-head"><div><div class="eyebrow">Citizen dashboard</div><h2>Welcome, Ananya</h2><p class="sub">Track every report from submission to closure.</p></div><button class="primary" onclick="showPage('report')">＋ Report a pothole</button></div><div class="stat-grid"><div class="card"><strong>4</strong><span>Reports submitted</span></div><div class="card"><strong>1</strong><span>Under verification</span></div><div class="card"><strong>1</strong><span>In progress</span></div><div class="card"><strong>2</strong><span>Closed</span></div></div><div class="section" style="margin-top:30px"><h2>My recent reports</h2><div class="reports"><div class="report-row"><div><h4>MIR-POT-000001</h4><p>Outer Ring Road, Bengaluru · 24 Aug 2026</p></div><div><span class="badge orange">Action in progress</span><br><button class="secondary" style="padding:7px 10px;margin-top:8px;font-size:12px" onclick="showPage('details')">View report</button></div></div><div class="report-row"><div><h4>MIR-POT-000002</h4><p>Hosur Road, Bengaluru · 19 Aug 2026</p></div><div><span class="badge green">Closed</span></div></div><div class="report-row"><div><h4>MIR-POT-000003</h4><p>12th Main, Mysuru · 10 Aug 2026</p></div><div><span class="badge green">Closed</span></div></div></div></div></section>
-            <section id="report" class="page"><div class="panel"><div class="eyebrow">New report</div><h2>Report a pothole</h2><p class="sub">Add evidence, location and a quick description.</p><div class="field"><label>1 · Photograph</label><div class="upload"><button onclick="toast('Camera ready in the mobile app')">◎ Take photo</button><button onclick="toast('Photo picker opened')">＋ Upload photo</button></div><label class="consent"><input id="photoConsent" type="checkbox"><span>I consent to The Mirror Project collecting and using this photograph, GPS location and description to verify, route and track this road-safety report. My personal contact details will not be publicly displayed. <a onclick="openLegal('privacy')">Learn more</a></span></label></div><div class="field"><label>2 · Location</label><button class="secondary" style="width:100%;color:var(--green);border-color:#b9d9cb" onclick="toast('Current location captured')">⌖ Use my current location</button><div class="map" style="margin-top:10px"><div class="pin"></div></div><small style="color:var(--muted)">Location captured · Bengaluru, Karnataka</small></div><div class="field"><label>3 · How dangerous is this pothole?</label><div class="severity"><button onclick="selectSeverity(this)">Low</button><button class="selected" onclick="selectSeverity(this)">Medium</button><button onclick="selectSeverity(this)">High</button><button onclick="selectSeverity(this)">Critical</button></div></div><div class="field"><label>4 · Describe the problem</label><textarea placeholder="Large pothole near the bus stop. Dangerous for two-wheelers."></textarea></div><button class="primary" style="margin-top:22px;width:100%" onclick="submitReport()">Review and submit report</button></div></section>
-            <section id="success" class="page"><div class="panel" style="text-align:center;padding:45px 28px"><div style="font-size:58px;color:var(--green)">✓</div><div class="eyebrow">Report received</div><h2>Report submitted successfully</h2><p class="sub">Your pothole report has been recorded and can now be tracked.</p><div class="card" style="margin:25px 0;background:var(--green2);border-color:#a3ccbc"><div style="font-size:13px;color:var(--muted)">Your report ID</div><strong style="font-size:27px;color:var(--green)">MIR-POT-000004</strong></div><div class="actions" style="justify-content:center"><button class="primary" onclick="showPage('details')">Track report</button><button class="secondary" onclick="showPage('dashboard')">Back to dashboard</button></div></div></section>
-            <section id="details" class="page"><div class="dash-head"><div><div class="eyebrow">Report details</div><h2>MIR-POT-000001</h2><p class="sub">Last updated 24 Aug 2026 · Outer Ring Road, Bengaluru</p></div><span class="badge orange" style="font-size:13px">Action in progress</span></div><div class="hero" style="margin-top:25px;grid-template-columns:1fr 1fr"><div class="card"><div style="height:220px;border-radius:15px;background:linear-gradient(145deg,#697678,#c9a27e);display:grid;place-items:center;color:#fff;font-weight:800">Citizen photograph</div><div class="field"><label>Severity</label><span class="badge red">High</span></div><div class="field"><label>Description</label><p style="margin:0;color:var(--muted)">Large pothole near bus stop. Dangerous for two-wheelers.</p></div></div><div class="card"><label style="font-size:13px;font-weight:750">Reported location</label><div class="map" style="margin-top:10px;height:220px"><div class="pin"></div></div><p style="color:var(--muted);font-size:13px">12.9716° N, 77.5946° E · Road authority identified</p><div class="timeline"><div class="event"><strong>Reported</strong><span>24 Aug 2026 · Citizen submission</span></div><div class="event"><strong>Verified</strong><span>24 Aug 2026 · Authority review</span></div><div class="event"><strong>Assigned</strong><span>25 Aug 2026 · Work order WO-KA-000001</span></div><div class="event"><strong>Action in progress</strong><span>Maintenance team assigned</span></div><div class="event pending"><strong>Repair completed</strong><span>Awaiting evidence</span></div></div></div></div></section>
-            <section id="impact" class="page"><div class="eyebrow">Public transparency</div><h2>Karnataka impact dashboard</h2><p class="sub">Aggregated statistics only. No private citizen information is exposed.</p><div class="impact" style="margin-top:25px"><div class="card"><strong>1,250</strong><span>Potholes reported</span></div><div class="card"><strong>1,080</strong><span>Verified</span></div><div class="card"><strong>245</strong><span>Under action</span></div><div class="card"><strong>720</strong><span>Repaired</span></div><div class="card"><strong>650</strong><span>Citizen confirmed</span></div></div><div class="card" style="margin-top:18px"><h3>Public pothole map</h3><div class="map" style="height:370px"><div class="pin" style="left:31%;top:42%"></div><div class="pin" style="left:56%;top:31%;background:#f59f00"></div><div class="pin" style="left:68%;top:62%;background:#044e37"></div><div class="pin" style="left:44%;top:72%;background:#d94841"></div></div><p style="color:var(--muted);font-size:13px">Locations are deliberately approximate to protect privacy.</p></div></section>
-            <div class="footer"><span>© 2026 The Mirror Project · Karnataka pilot prototype</span><span><a onclick="openLegal('privacy')" style="cursor:pointer">Privacy</a> · <a onclick="openLegal('terms')" style="cursor:pointer">Terms</a> · Accessibility</span></div>
+            <section id="login" class="page">
+                <div class="panel">
+                    <div class="eyebrow">Citizen access</div>
+                    <h2>Sign in with OTP</h2>
+                    <p class="sub">No password needed. Your mobile number is your identity.</p>
+                    <div class="field"><label>Mobile number</label><input id="phone" placeholder="+91 98765 43210" />
+                    </div><label class="consent"><input id="phoneConsent" type="checkbox"
+                            onchange="toggleOtpButton()"><span>I agree to The Mirror Project <a
+                                onclick="openLegal('terms')">Terms of Use</a> and <a
+                                onclick="openLegal('privacy')">Privacy Policy</a>. I consent to the collection and use
+                            of my phone number for OTP authentication, account access, service notifications and report
+                            updates.</span></label><button id="sendOtpButton" class="primary"
+                        style="margin-top:20px;width:100%;opacity:.5;cursor:not-allowed" disabled
+                        onclick="sendOtp()">Accept and send OTP</button>
+                    <div id="otpBox" style="display:none">
+                        <div class="field"><label>Enter 6-digit OTP</label><input id="otp" placeholder="123456"
+                                inputmode="numeric" /></div><button class="primary" style="margin-top:20px;width:100%"
+                            onclick="verifyOtp()">Verify and continue</button>
+                    </div>
+                    <div class="demo-note">Prototype mode: use any phone number and OTP <b>123456</b>.</div>
+                </div>
+            </section>
+            <section id="dashboard" class="page">
+                <div class="dash-head">
+                    <div>
+                        <div class="eyebrow">Citizen dashboard</div>
+                        <h2>Welcome, Ananya</h2>
+                        <p class="sub">Track every report from submission to closure.</p>
+                    </div><button class="primary" onclick="showPage('report')">＋ Report a pothole</button>
+                </div>
+                <div class="stat-grid">
+                    <div class="card"><strong>4</strong><span>Reports submitted</span></div>
+                    <div class="card"><strong>1</strong><span>Under verification</span></div>
+                    <div class="card"><strong>1</strong><span>In progress</span></div>
+                    <div class="card"><strong>2</strong><span>Closed</span></div>
+                </div>
+                <div class="section" style="margin-top:30px">
+                    <h2>My recent reports</h2>
+                    <div class="reports">
+                        <div class="report-row">
+                            <div>
+                                <h4>MIR-POT-000001</h4>
+                                <p>Outer Ring Road, Bengaluru · 24 Aug 2026</p>
+                            </div>
+                            <div><span class="badge orange">Action in progress</span><br><button class="secondary"
+                                    style="padding:7px 10px;margin-top:8px;font-size:12px"
+                                    onclick="showPage('details')">View report</button></div>
+                        </div>
+                        <div class="report-row">
+                            <div>
+                                <h4>MIR-POT-000002</h4>
+                                <p>Hosur Road, Bengaluru · 19 Aug 2026</p>
+                            </div>
+                            <div><span class="badge green">Closed</span></div>
+                        </div>
+                        <div class="report-row">
+                            <div>
+                                <h4>MIR-POT-000003</h4>
+                                <p>12th Main, Mysuru · 10 Aug 2026</p>
+                            </div>
+                            <div><span class="badge green">Closed</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="report" class="page">
+                <div class="panel">
+                    <div class="eyebrow">New report</div>
+                    <h2>Report a pothole</h2>
+                    <p class="sub">Add evidence, location and a quick description.</p>
+                    <div class="field"><label>1 · Photograph</label>
+                        <div class="upload"><button onclick="toast('Camera ready in the mobile app')">◎ Take
+                                photo</button><button onclick="toast('Photo picker opened')">＋ Upload photo</button>
+                        </div><label class="consent"><input id="photoConsent" type="checkbox"><span>I consent to The
+                                Mirror Project collecting and using this photograph, GPS location and description to
+                                verify, route and track this road-safety report. My personal contact details will not be
+                                publicly displayed. <a onclick="openLegal('privacy')">Learn more</a></span></label>
+                    </div>
+                    <div class="field"><label>2 · Location</label><button class="secondary"
+                            style="width:100%;color:var(--green);border-color:#b9d9cb"
+                            onclick="toast('Current location captured')">⌖ Use my current location</button>
+                        <div class="map" style="margin-top:10px">
+                            <div class="pin"></div>
+                        </div><small style="color:var(--muted)">Location captured · Bengaluru, Karnataka</small>
+                    </div>
+                    <div class="field"><label>3 · How dangerous is this pothole?</label>
+                        <div class="severity"><button onclick="selectSeverity(this)">Low</button><button
+                                class="selected" onclick="selectSeverity(this)">Medium</button><button
+                                onclick="selectSeverity(this)">High</button><button
+                                onclick="selectSeverity(this)">Critical</button></div>
+                    </div>
+                    <div class="field"><label>4 · Describe the problem</label><textarea
+                            placeholder="Large pothole near the bus stop. Dangerous for two-wheelers."></textarea></div>
+                    <button class="primary" style="margin-top:22px;width:100%" onclick="submitReport()">Review and
+                        submit report</button>
+                </div>
+            </section>
+            <section id="success" class="page">
+                <div class="panel" style="text-align:center;padding:45px 28px">
+                    <div style="font-size:58px;color:var(--green)">✓</div>
+                    <div class="eyebrow">Report received</div>
+                    <h2>Report submitted successfully</h2>
+                    <p class="sub">Your pothole report has been recorded and can now be tracked.</p>
+                    <div class="card" style="margin:25px 0;background:var(--green2);border-color:#a3ccbc">
+                        <div style="font-size:13px;color:var(--muted)">Your report ID</div><strong
+                            style="font-size:27px;color:var(--green)">MIR-POT-000004</strong>
+                    </div>
+                    <div class="actions" style="justify-content:center"><button class="primary"
+                            onclick="showPage('details')">Track report</button><button class="secondary"
+                            onclick="showPage('dashboard')">Back to dashboard</button></div>
+                </div>
+            </section>
+            <section id="details" class="page">
+                <div class="dash-head">
+                    <div>
+                        <div class="eyebrow">Report details</div>
+                        <h2>MIR-POT-000001</h2>
+                        <p class="sub">Last updated 24 Aug 2026 · Outer Ring Road, Bengaluru</p>
+                    </div><span class="badge orange" style="font-size:13px">Action in progress</span>
+                </div>
+                <div class="hero" style="margin-top:25px;grid-template-columns:1fr 1fr">
+                    <div class="card">
+                        <div
+                            style="height:220px;border-radius:15px;background:linear-gradient(145deg,#697678,#c9a27e);display:grid;place-items:center;color:#fff;font-weight:800">
+                            Citizen photograph</div>
+                        <div class="field"><label>Severity</label><span class="badge red">High</span></div>
+                        <div class="field"><label>Description</label>
+                            <p style="margin:0;color:var(--muted)">Large pothole near bus stop. Dangerous for
+                                two-wheelers.</p>
+                        </div>
+                    </div>
+                    <div class="card"><label style="font-size:13px;font-weight:750">Reported location</label>
+                        <div class="map" style="margin-top:10px;height:220px">
+                            <div class="pin"></div>
+                        </div>
+                        <p style="color:var(--muted);font-size:13px">12.9716° N, 77.5946° E · Road authority identified
+                        </p>
+                        <div class="timeline">
+                            <div class="event"><strong>Reported</strong><span>24 Aug 2026 · Citizen submission</span>
+                            </div>
+                            <div class="event"><strong>Verified</strong><span>24 Aug 2026 · Authority review</span>
+                            </div>
+                            <div class="event"><strong>Assigned</strong><span>25 Aug 2026 · Work order
+                                    WO-KA-000001</span></div>
+                            <div class="event"><strong>Action in progress</strong><span>Maintenance team assigned</span>
+                            </div>
+                            <div class="event pending"><strong>Repair completed</strong><span>Awaiting evidence</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="impact" class="page">
+                <div class="eyebrow">Public transparency</div>
+                <h2>Karnataka impact dashboard</h2>
+                <p class="sub">Aggregated statistics only. No private citizen information is exposed.</p>
+                <div class="impact" style="margin-top:25px">
+                    <div class="card"><strong>1,250</strong><span>Potholes reported</span></div>
+                    <div class="card"><strong>1,080</strong><span>Verified</span></div>
+                    <div class="card"><strong>245</strong><span>Under action</span></div>
+                    <div class="card"><strong>720</strong><span>Repaired</span></div>
+                    <div class="card"><strong>650</strong><span>Citizen confirmed</span></div>
+                </div>
+                <div class="card" style="margin-top:18px">
+                    <h3>Public pothole map</h3>
+                    <div class="map" style="height:370px">
+                        <div class="pin" style="left:31%;top:42%"></div>
+                        <div class="pin" style="left:56%;top:31%;background:#f59f00"></div>
+                        <div class="pin" style="left:68%;top:62%;background:#044e37"></div>
+                        <div class="pin" style="left:44%;top:72%;background:#d94841"></div>
+                    </div>
+                    <p style="color:var(--muted);font-size:13px">Locations are deliberately approximate to protect
+                        privacy.</p>
+                </div>
+            </section>
+            <div class="footer"><span>© 2026 The Mirror Project · Karnataka pilot prototype</span><span><a
+                        onclick="openLegal('privacy')" style="cursor:pointer">Privacy</a> · <a
+                        onclick="openLegal('terms')" style="cursor:pointer">Terms</a> · Accessibility</span></div>
         </main>
         <div class="toast" id="toast"></div>
-        <div id="legalModal" style="display:none;position:fixed;inset:0;background:rgba(18,33,43,.55);z-index:20;padding:22px;overflow:auto"><div class="panel" style="margin:40px auto;max-width:700px;position:relative"><button onclick="closeLegal()" style="position:absolute;right:18px;top:15px;background:transparent;font-size:24px;color:var(--muted)">×</button><div id="legalContent"></div><button class="primary" style="margin-top:20px;width:100%" onclick="closeLegal()">I understand</button></div></div>
+        <div id="legalModal"
+            style="display:none;position:fixed;inset:0;background:rgba(18,33,43,.55);z-index:20;padding:22px;overflow:auto">
+            <div class="panel" style="margin:40px auto;max-width:700px;position:relative"><button onclick="closeLegal()"
+                    style="position:absolute;right:18px;top:15px;background:transparent;font-size:24px;color:var(--muted)">×</button>
+                <div id="legalContent"></div><button class="primary" style="margin-top:20px;width:100%"
+                    onclick="closeLegal()">I understand</button>
+            </div>
+        </div>
     </div>
-    <script>function showPage(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
-        function toggleOtpButton(){let button=document.getElementById('sendOtpButton');let allowed=document.getElementById('phoneConsent').checked;button.disabled=!allowed;button.style.opacity=allowed?'1':'.5';button.style.cursor=allowed?'pointer':'not-allowed'}
-        function sendOtp(){if(!document.getElementById('phoneConsent').checked){toast('Please accept the terms and consent first');return}document.getElementById('otpBox').style.display='block';toast('OTP sent. Prototype OTP is 123456.')}
-        function verifyOtp(){if(document.getElementById('otp').value==='123456'){showPage('dashboard');toast('Welcome back, Ananya')}else toast('Incorrect OTP. Try 123456.')}
-        function selectSeverity(el){document.querySelectorAll('.severity button').forEach(x=>x.classList.remove('selected'));el.classList.add('selected')}
-        function submitReport(){if(!document.getElementById('photoConsent').checked){toast('Please accept the photo and location consent before submitting');return}showPage('success');toast('Report created: MIR-POT-000004')}
-        function toast(msg){let x=document.getElementById('toast');x.textContent=msg;x.style.display='block';setTimeout(()=>x.style.display='none',2600)}
-        function toggleLang(){toast('Kannada interface is ready for localisation content')}
-        function openLegal(type){let title=type==='terms'?'Terms of Use':'Privacy Policy';let body=type==='terms'?'<p>By using The Mirror Project, you agree to submit truthful road-safety information and use the service lawfully. Reports may be reviewed, routed to the responsible authority and retained as necessary for accountability, safety and dispute resolution.</p><p>Do not upload private, unlawful or unrelated content. Production terms should be reviewed and approved by a qualified legal adviser before launch.</p>':'<p>The Mirror Project collects your name, mobile number and optional email to create and manage your account. Your phone number is used for OTP authentication and important service notifications.</p><p>When you submit a report, the project collects the photograph, GPS location, severity and description. This information is used to verify the issue, identify the responsible authority, coordinate repairs and maintain an accountability record.</p><p>Personal contact details are not displayed on the public map or public statistics dashboard. Production deployment should include retention periods, deletion requests, access controls and a legally reviewed privacy notice.</p>';document.getElementById('legalContent').innerHTML='<div class="eyebrow">'+title+'</div><h2>'+title+'</h2>'+body;document.getElementById('legalModal').style.display='block'}
-        function closeLegal(){document.getElementById('legalModal').style.display='none'}</script>
+    <script>function showPage(id) { document.querySelectorAll('.page').forEach(x => x.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+        function toggleOtpButton() { let button = document.getElementById('sendOtpButton'); let allowed = document.getElementById('phoneConsent').checked; button.disabled = !allowed; button.style.opacity = allowed ? '1' : '.5'; button.style.cursor = allowed ? 'pointer' : 'not-allowed' }
+        function sendOtp() { if (!document.getElementById('phoneConsent').checked) { toast('Please accept the terms and consent first'); return } document.getElementById('otpBox').style.display = 'block'; toast('OTP sent. Prototype OTP is 123456.') }
+        function verifyOtp() { if (document.getElementById('otp').value === '123456') { showPage('dashboard'); toast('Welcome back, Ananya') } else toast('Incorrect OTP. Try 123456.') }
+        function selectSeverity(el) { document.querySelectorAll('.severity button').forEach(x => x.classList.remove('selected')); el.classList.add('selected') }
+        function submitReport() { if (!document.getElementById('photoConsent').checked) { toast('Please accept the photo and location consent before submitting'); return } showPage('success'); toast('Report created: MIR-POT-000004') }
+        function toast(msg) { let x = document.getElementById('toast'); x.textContent = msg; x.style.display = 'block'; setTimeout(() => x.style.display = 'none', 2600) }
+        function toggleLang() { toast('Kannada interface is ready for localisation content') }
+        function openLegal(type) { let title = type === 'terms' ? 'Terms of Use' : 'Privacy Policy'; let body = type === 'terms' ? '<p>By using The Mirror Project, you agree to submit truthful road-safety information and use the service lawfully. Reports may be reviewed, routed to the responsible authority and retained as necessary for accountability, safety and dispute resolution.</p><p>Do not upload private, unlawful or unrelated content. Production terms should be reviewed and approved by a qualified legal adviser before launch.</p>' : '<p>The Mirror Project collects your name, mobile number and optional email to create and manage your account. Your phone number is used for OTP authentication and important service notifications.</p><p>When you submit a report, the project collects the photograph, GPS location, severity and description. This information is used to verify the issue, identify the responsible authority, coordinate repairs and maintain an accountability record.</p><p>Personal contact details are not displayed on the public map or public statistics dashboard. Production deployment should include retention periods, deletion requests, access controls and a legally reviewed privacy notice.</p>'; document.getElementById('legalContent').innerHTML = '<div class="eyebrow">' + title + '</div><h2>' + title + '</h2>' + body; document.getElementById('legalModal').style.display = 'block' }
+        function closeLegal() { document.getElementById('legalModal').style.display = 'none' }</script>
 </body>
+
 </html>
 '''
 

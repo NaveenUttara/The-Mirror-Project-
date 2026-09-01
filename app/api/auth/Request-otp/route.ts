@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import { getConnection } from '@/lib/db';
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
@@ -19,11 +19,21 @@ export async function POST(request: Request) {
 
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Expires in 10 minutes
 
-        // Save hashed OTP to your FRSCMP database
-        await pool.query(
-            `INSERT INTO otp_requests (phone, otp_hash, expires_at) VALUES ($1, $2, $3)`,
-            [phone, otpHash, expiresAt]
-        );
+        // Save the hashed OTP to the FRSCMP Oracle database.
+        const connection = await getConnection();
+
+        try {
+            await connection.execute(
+                `INSERT INTO MIRROR_OTP_REQUESTS
+                    (id, phone, otp_hash, expires_at, attempts)
+                 VALUES
+                    (MIRROR_OTP_REQ_SEQ.NEXTVAL, :phone, :otpHash, :expiresAt, 0)`,
+                { phone, otpHash, expiresAt },
+                { autoCommit: true }
+            );
+        } finally {
+            await connection.close();
+        }
 
         // Optional: Trigger external SMS gateway if API key is present
         const smsApiKey = process.env.SMS_API_KEY;

@@ -44,4 +44,5 @@ next-env.d.ts
 .vs/
 
 
+/docs/qa_render_word*/
 
