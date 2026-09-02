@@ -34,6 +34,9 @@ function getPool(): Promise<oracledb.Pool> {
       poolMin: 1,
       poolMax: 10,
       poolIncrement: 1,
+    }).catch((error) => {
+      oracleGlobal.mirrorOraclePoolPromise = undefined;
+      throw error;
     });
   }
 

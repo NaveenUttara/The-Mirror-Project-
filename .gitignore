@@ -19,6 +19,7 @@
 
 # production
 /build
+/storage/
 
 # misc
 .DS_Store
@@ -45,4 +46,3 @@ next-env.d.ts
 
 
 /docs/qa_render_word*/
-

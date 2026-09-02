@@ -34,6 +34,8 @@ function isValidOtp(otp: string, storedValue: string): boolean {
 export async function POST(request: Request) {
     try {
         const { phone, otp, name, email } = await request.json();
+        const normalizedName = typeof name === 'string' ? name.trim() : '';
+        const normalizedEmail = typeof email === 'string' ? email.trim() : '';
 
         if (!phone || !otp) {
             return NextResponse.json({ error: 'Phone and OTP are required' }, { status: 400 });
@@ -85,21 +87,64 @@ export async function POST(request: Request) {
             };
 
             const existingUser = await findUser();
+            const profileIsIncomplete = !existingUser
+                || !existingUser.name.trim()
+                || existingUser.name.trim().toLowerCase() === 'citizen';
 
-            if (existingUser) {
+            if (existingUser && !profileIsIncomplete) {
                 user = existingUser;
             } else {
-                await connection.execute(
-                    `INSERT INTO MIRROR_USERS
-                        (id, name, phone, email, phone_verified)
-                     VALUES
-                        (MIRROR_USERS_SEQ.NEXTVAL, :name, :phone, :email, 1)`,
-                    {
-                        name: name || 'Citizen',
-                        phone,
-                        email: email || '',
-                    }
-                );
+                if (!normalizedName) {
+                    return NextResponse.json({
+                        success: true,
+                        profileRequired: true,
+                        message: 'OTP verified. Complete your profile to continue.',
+                    });
+                }
+
+                if (normalizedName.length > 150) {
+                    return NextResponse.json(
+                        { error: 'Name must be 150 characters or fewer' },
+                        { status: 400 }
+                    );
+                }
+
+                if (
+                    normalizedEmail
+                    && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+                ) {
+                    return NextResponse.json(
+                        { error: 'Enter a valid email address or leave it blank' },
+                        { status: 400 }
+                    );
+                }
+
+                if (existingUser) {
+                    await connection.execute(
+                        `UPDATE MIRROR_USERS
+                            SET name = :name,
+                                email = :email,
+                                updated_at = SYSTIMESTAMP
+                          WHERE id = :id`,
+                        {
+                            name: normalizedName,
+                            email: normalizedEmail || null,
+                            id: existingUser.id,
+                        }
+                    );
+                } else {
+                    await connection.execute(
+                        `INSERT INTO MIRROR_USERS
+                            (id, name, phone, email, phone_verified)
+                         VALUES
+                            (MIRROR_USERS_SEQ.NEXTVAL, :name, :phone, :email, 1)`,
+                        {
+                            name: normalizedName,
+                            phone,
+                            email: normalizedEmail || null,
+                        }
+                    );
+                }
 
                 const createdUser = await findUser();
 

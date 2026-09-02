@@ -692,9 +692,7 @@
                     </div>
                     <div class="hero-card">
                         <h3>Visible action, not just complaints.</h3>
-                        <div class="mini-stat"><span>Potholes reported</span><strong>1,250</strong></div>
-                        <div class="mini-stat"><span>Repairs citizen-confirmed</span><strong>650</strong></div>
-                        <div class="mini-stat"><span>Open accountability cases</span><strong>35</strong></div>
+                        <p>Verified public statistics will appear here when real reports and authority updates are available.</p>
                     </div>
                 </div>
                 <div class="section">
@@ -729,13 +727,7 @@
                 </div>
                 <div class="section">
                     <h2>Current Karnataka impact</h2>
-                    <div class="impact">
-                        <div class="card"><strong>1,250</strong><span>Potholes reported</span></div>
-                        <div class="card"><strong>1,080</strong><span>Verified</span></div>
-                        <div class="card"><strong>245</strong><span>Under action</span></div>
-                        <div class="card"><strong>720</strong><span>Repaired</span></div>
-                        <div class="card"><strong>35</strong><span>Overdue</span></div>
-                    </div>
+                    <div class="card">Verified public statistics will appear when real reports are available.</div>
                 </div>
             </section>
             <section id="login" class="page">
@@ -768,38 +760,10 @@
                         <p class="sub">Track every report from submission to closure.</p>
                     </div><button class="primary" onclick="showPage('report')">＋ Report a pothole</button>
                 </div>
-                <div class="stat-grid">
-                    <div class="card"><strong>4</strong><span>Reports submitted</span></div>
-                    <div class="card"><strong>1</strong><span>Under verification</span></div>
-                    <div class="card"><strong>1</strong><span>In progress</span></div>
-                    <div class="card"><strong>2</strong><span>Closed</span></div>
-                </div>
                 <div class="section" style="margin-top:30px">
                     <h2>My recent reports</h2>
                     <div class="reports">
-                        <div class="report-row">
-                            <div>
-                                <h4>MIR-POT-000001</h4>
-                                <p>Outer Ring Road, Bengaluru · 24 Aug 2026</p>
-                            </div>
-                            <div><span class="badge orange">Action in progress</span><br><button class="secondary"
-                                    style="padding:7px 10px;margin-top:8px;font-size:12px"
-                                    onclick="showPage('details')">View report</button></div>
-                        </div>
-                        <div class="report-row">
-                            <div>
-                                <h4>MIR-POT-000002</h4>
-                                <p>Hosur Road, Bengaluru · 19 Aug 2026</p>
-                            </div>
-                            <div><span class="badge green">Closed</span></div>
-                        </div>
-                        <div class="report-row">
-                            <div>
-                                <h4>MIR-POT-000003</h4>
-                                <p>12th Main, Mysuru · 10 Aug 2026</p>
-                            </div>
-                            <div><span class="badge green">Closed</span></div>
-                        </div>
+                        <div class="card">No reports submitted yet.</div>
                     </div>
                 </div>
             </section>
@@ -810,18 +774,14 @@
                     <p class="sub">Add evidence, location and a quick description.</p>
                     <div class="field"><label>1 · Photograph</label>
                         <div class="upload"><button onclick="toast('Camera ready in the mobile app')">◎ Take
-                                photo</button><button onclick="toast('Photo picker opened')">＋ Upload photo</button>
+                                photo</button>
                         </div><label class="consent"><input id="photoConsent" type="checkbox"><span>I consent to The
                                 Mirror Project collecting and using this photograph, GPS location and description to
                                 verify, route and track this road-safety report. My personal contact details will not be
                                 publicly displayed. <a onclick="openLegal('privacy')">Learn more</a></span></label>
                     </div>
-                    <div class="field"><label>2 · Location</label><button class="secondary"
-                            style="width:100%;color:var(--green);border-color:#b9d9cb"
-                            onclick="toast('Current location captured')">⌖ Use my current location</button>
-                        <div class="map" style="margin-top:10px">
-                            <div class="pin"></div>
-                        </div><small style="color:var(--muted)">Location captured · Bengaluru, Karnataka</small>
+                    <div class="field"><label>2 · Photo location</label>
+                        <div class="card">GPS location will be captured automatically with the camera photo.</div>
                     </div>
                     <div class="field"><label>3 · How dangerous is this pothole?</label>
                         <div class="severity"><button onclick="selectSeverity(this)">Low</button><button
@@ -894,24 +854,7 @@
                 <div class="eyebrow">Public transparency</div>
                 <h2>Karnataka impact dashboard</h2>
                 <p class="sub">Aggregated statistics only. No private citizen information is exposed.</p>
-                <div class="impact" style="margin-top:25px">
-                    <div class="card"><strong>1,250</strong><span>Potholes reported</span></div>
-                    <div class="card"><strong>1,080</strong><span>Verified</span></div>
-                    <div class="card"><strong>245</strong><span>Under action</span></div>
-                    <div class="card"><strong>720</strong><span>Repaired</span></div>
-                    <div class="card"><strong>650</strong><span>Citizen confirmed</span></div>
-                </div>
-                <div class="card" style="margin-top:18px">
-                    <h3>Public pothole map</h3>
-                    <div class="map" style="height:370px">
-                        <div class="pin" style="left:31%;top:42%"></div>
-                        <div class="pin" style="left:56%;top:31%;background:#f59f00"></div>
-                        <div class="pin" style="left:68%;top:62%;background:#044e37"></div>
-                        <div class="pin" style="left:44%;top:72%;background:#d94841"></div>
-                    </div>
-                    <p style="color:var(--muted);font-size:13px">Locations are deliberately approximate to protect
-                        privacy.</p>
-                </div>
+                <div class="card" style="margin-top:25px">Verified public statistics and map information will appear after real reports have been reviewed.</div>
             </section>
             <div class="footer"><span>© 2026 The Mirror Project · Karnataka pilot prototype</span><span><a
                         onclick="openLegal('privacy')" style="cursor:pointer">Privacy</a> · <a
