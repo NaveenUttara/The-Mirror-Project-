@@ -10,8 +10,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Valid mobile number is required' }, { status: 400 });
         }
 
-        // Generate a random 6-digit OTP
-        const otp = process.env.NODE_ENV === 'development' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+        // Use a visible fixed OTP until the SMS gateway is configured.
+        // Adding SMS_API_KEY automatically switches this route to random OTPs.
+        const smsApiKey = process.env.SMS_API_KEY?.trim();
+        const isTemporaryOtp = !smsApiKey;
+        const otp = isTemporaryOtp
+            ? '123456'
+            : Math.floor(100000 + Math.random() * 900000).toString();
 
         // Hash the OTP before saving to database for security
         const salt = crypto.randomBytes(16).toString('hex');
@@ -36,8 +41,7 @@ export async function POST(request: Request) {
         }
 
         // Optional: Trigger external SMS gateway if API key is present
-        const smsApiKey = process.env.SMS_API_KEY;
-        if (smsApiKey && process.env.NODE_ENV !== 'development') {
+        if (smsApiKey) {
             await fetch('https://www.fast2sms.com/dev/bulkV2', {
                 method: 'POST',
                 headers: {
@@ -54,8 +58,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            message: 'OTP sent successfully',
-            debugOtp: process.env.NODE_ENV === 'development' ? otp : undefined
+            message: isTemporaryOtp ? 'Temporary OTP generated' : 'OTP sent successfully',
+            debugOtp: isTemporaryOtp ? otp : undefined
         });
 
     } catch (error: unknown) {

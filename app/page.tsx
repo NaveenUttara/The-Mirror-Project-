@@ -120,7 +120,7 @@ export default function Home() {
             }
             setShowProfileBox(false);
             setShowOtpBox(true);
-            showToast(`OTP sent${data.debugOtp ? `. Development OTP: ${data.debugOtp}` : ''}`);
+            showToast(`OTP sent${data.debugOtp ? `. Temporary OTP: ${data.debugOtp}` : ''}`);
         } catch (error) {
             console.error(error);
             showToast('Network error while requesting OTP');
@@ -404,7 +404,7 @@ export default function Home() {
                                 )}
                             </div>
                         )}
-                        <div className="demo-note">Database mode: OTP requests and verified users are stored in the FRSCMP Oracle database. Development OTP is <b>123456</b>.</div>
+                        <div className="demo-note">Database mode: OTP requests and verified users are stored in the FRSCMP Oracle database. Until SMS is configured, the temporary OTP is <b>123456</b>.</div>
                     </div>
                 </section>
 
