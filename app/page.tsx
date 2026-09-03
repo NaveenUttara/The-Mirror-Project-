@@ -5,6 +5,7 @@ import './mirror.css';
 
 type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
 type LegalType = 'terms' | 'privacy';
+type LocationPermissionState = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable';
 type CitizenReport = {
     reportId: string;
     potholePublicId: string;
@@ -39,6 +40,7 @@ export default function Home() {
     const [photoCapturedAt, setPhotoCapturedAt] = useState('');
     const [locationCapturedAt, setLocationCapturedAt] = useState('');
     const [locationBusy, setLocationBusy] = useState(false);
+    const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>('idle');
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoConsent, setPhotoConsent] = useState(false);
     const [reportBusy, setReportBusy] = useState(false);
@@ -174,30 +176,49 @@ export default function Home() {
     };
 
     const captureLocation = () => {
+        if (!window.isSecureContext) {
+            setLocationPermissionState('unavailable');
+            showToast('Live location requires HTTPS. Open this application using a secure https:// address.');
+            return;
+        }
         if (!navigator.geolocation) {
+            setLocationPermissionState('unavailable');
             showToast('Location is not supported in this browser. The report cannot be submitted.');
             return;
         }
 
         setLocationBusy(true);
+        setLocationPermissionState('requesting');
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 setLatitude(position.coords.latitude.toFixed(7));
                 setLongitude(position.coords.longitude.toFixed(7));
                 setLocationAccuracy(position.coords.accuracy);
                 setLocationCapturedAt(new Date(position.timestamp).toISOString());
+                setLocationPermissionState('granted');
                 setLocationBusy(false);
                 if (position.coords.accuracy > 100) {
-                    showToast('GPS accuracy is too low. Move outdoors and take the photo again.');
+                    showToast('GPS accuracy is too low. Move outdoors and capture the location again.');
                 } else {
-                    showToast('Photo and current GPS location captured');
+                    showToast('Current location captured within 100-metre GPS accuracy');
                 }
             },
-            () => {
+            (error) => {
+                setLatitude('');
+                setLongitude('');
+                setLocationAccuracy(null);
+                setLocationCapturedAt('');
+                setLocationPermissionState(error.code === 1 ? 'denied' : 'idle');
                 setLocationBusy(false);
-                showToast('Location permission is required to submit this report.');
+                if (error.code === 1) {
+                    showToast('Location permission was denied. Allow location for this site in Chrome settings.');
+                } else if (error.code === 2) {
+                    showToast('Your current location is unavailable. Turn on GPS and try again outdoors.');
+                } else {
+                    showToast('Location capture timed out. Move outdoors and try again.');
+                }
             },
-            { enableHighAccuracy: true, timeout: 10000 },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
         );
     };
 
@@ -207,6 +228,7 @@ export default function Home() {
         setLongitude('');
         setLocationAccuracy(null);
         setLocationCapturedAt('');
+        setLocationPermissionState('idle');
 
         if (!file) {
             setPhotoCapturedAt('');
@@ -214,7 +236,7 @@ export default function Home() {
         }
 
         setPhotoCapturedAt(new Date().toISOString());
-        captureLocation();
+        showToast('Photo captured. Now capture the current location.');
     };
 
     const submitReport = async () => {
@@ -270,6 +292,7 @@ export default function Home() {
             setLocationAccuracy(null);
             setPhotoCapturedAt('');
             setLocationCapturedAt('');
+            setLocationPermissionState('idle');
             setDescription('');
             setSeverity('Medium');
             setPhotoConsent(false);
@@ -416,21 +439,36 @@ export default function Home() {
                         <div className="eyebrow">New report</div><h2>Report a pothole</h2><p className="sub">Add evidence, location and a quick description.</p>
                         <div className="field">
                             <label>1 · Photograph</label>
-                            <input ref={photoInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
-                            <div className="upload"><button type="button" onClick={() => photoInputRef.current?.click()}>◎ Take photo</button></div>
-                            <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : 'JPEG, PNG or WebP · maximum 5 MB'}</small>
                             <label className="consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /><span>I consent to The Mirror Project collecting and using this photograph, GPS location and description to verify, route and track this road-safety report. My personal contact details will not be publicly displayed. <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>Learn more</button></span></label>
+                            <input ref={photoInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
+                            <div className="upload"><button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoInputRef.current?.click()}>◎ Take photo</button></div>
+                            <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : 'Accept the consent, then take a current photo · JPEG, PNG or WebP · maximum 5 MB'}</small>
                         </div>
                         <div className="field">
-                            <label>2 · Photo location</label>
-                            <div className="location-lock card">{locationBusy ? 'Capturing current GPS location…' : latitude && longitude ? <><strong>GPS location locked</strong><span>{latitude}, {longitude}</span><small>Accuracy: approximately {Math.round(locationAccuracy || 0)} metres</small></> : 'Take a photo to capture its current GPS location.'}</div>
+                            <label>2 · Current location</label>
+                            <button className="secondary full-width" type="button" disabled={!photoConsent || !photoFile || locationBusy} onClick={captureLocation}>
+                                {locationBusy ? 'Capturing current location…' : locationPermissionState === 'granted' ? 'Capture current location again' : 'Capture current location'}
+                            </button>
+                            <div className="location-lock card">
+                                {locationBusy
+                                    ? 'Waiting for a precise GPS location…'
+                                    : locationPermissionState === 'unavailable'
+                                        ? 'Current location requires a secure HTTPS connection.'
+                                        : locationPermissionState === 'denied'
+                                            ? 'Location is blocked. Allow it in Chrome site settings, then try again.'
+                                            : latitude && longitude
+                                                ? <><strong>{(locationAccuracy || 0) <= 100 ? 'Location verified' : 'Location accuracy is too low'}</strong><span>{latitude}, {longitude}</span><small>Accuracy: approximately {Math.round(locationAccuracy || 0)} metres · required: 100 metres or better</small></>
+                                                : photoFile
+                                                    ? 'Photo ready. Capture the current GPS location within two minutes.'
+                                                    : 'Take a photo first, then capture the current location.'}
+                            </div>
                         </div>
                         <div className="field">
                             <label>3 · How dangerous is this pothole?</label>
                             <div className="severity">{['Low', 'Medium', 'High', 'Critical'].map((value) => <button className={severity === value ? 'selected' : ''} type="button" key={value} onClick={() => setSeverity(value)}>{value}</button>)}</div>
                         </div>
                         <div className="field"><label htmlFor="description">4 · Describe the problem</label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} placeholder="Large pothole near the bus stop. Dangerous for two-wheelers." /></div>
-                        <button className="primary full-width report-submit" type="button" disabled={reportBusy || locationBusy} onClick={submitReport}>{reportBusy ? 'Submitting report…' : 'Review and submit report'}</button>
+                        <button className="primary full-width report-submit" type="button" disabled={reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100} onClick={submitReport}>{reportBusy ? 'Submitting report…' : 'Review and submit report'}</button>
                     </div>
                 </section>
 

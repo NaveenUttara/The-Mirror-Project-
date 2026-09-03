@@ -526,7 +526,7 @@
 
         .upload {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 10px
         }
 
@@ -537,6 +537,12 @@
             background: #fbfdfc;
             color: var(--green);
             font-weight: 750
+        }
+
+        .upload button:disabled,
+        .field > button:disabled {
+            cursor: not-allowed;
+            opacity: .5
         }
 
         .timeline {
