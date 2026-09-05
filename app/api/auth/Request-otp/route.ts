@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import crypto from 'crypto';
+import { forwardedResponse, getMedusaBackendUrl } from '@/lib/medusa-proxy';
 
 export async function POST(request: Request) {
     try {
         const { phone } = await request.json();
+
+        const medusaUrl = getMedusaBackendUrl();
+        if (medusaUrl) {
+            const response = await fetch(`${medusaUrl}/mirror/auth/request-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone }),
+                cache: 'no-store',
+            });
+            return forwardedResponse(response);
+        }
 
         if (!phone || phone.length < 10) {
             return NextResponse.json({ error: 'Valid mobile number is required' }, { status: 400 });

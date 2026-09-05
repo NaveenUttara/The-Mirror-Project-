@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:check": "node --env-file=.env.local scripts/check-oracle.mjs"
+    "db:check": "node --env-file=.env.local scripts/check-oracle.mjs",
+    "storage:check": "node --env-file=.env.local scripts/check-r2.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1127.0",
     "jsonwebtoken": "^9.0.3",
     "next": "16.3.2",
     "oracledb": "^7.0.1",

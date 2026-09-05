@@ -412,9 +412,29 @@
             border-radius: 17px;
             padding: 17px;
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 88px 1fr auto;
             gap: 10px;
             align-items: center
+        }
+
+        .report-photo {
+            width: 88px;
+            height: 68px;
+            border-radius: 11px;
+            object-fit: cover;
+            background: var(--green2)
+        }
+
+        .report-photo-loading {
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center
+        }
+
+        .report-row-status {
+            text-align: right
         }
 
         .report-row h4 {
@@ -772,6 +792,20 @@
         }
 
         @media (max-width: 620px) {
+            .report-row {
+                grid-template-columns: 72px 1fr
+            }
+
+            .report-photo {
+                width: 72px;
+                height: 64px
+            }
+
+            .report-row-status {
+                grid-column: 2;
+                text-align: left
+            }
+
             .coordinate-grid {
                 grid-template-columns: 1fr
             }

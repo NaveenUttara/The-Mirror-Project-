@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import oracledb from "oracledb";
 import { authenticateRequest } from "@/lib/auth";
 import { getConnection } from "@/lib/db";
+import { deleteReportPhoto, saveReportPhoto } from "@/lib/report-storage";
+import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy";
 
 export const runtime = "nodejs";
 
@@ -27,6 +27,7 @@ type SequenceRow = {
 type ReportRow = {
   reportId: string;
   potholePublicId: string;
+  photoId: number | null;
   latitude: number;
   longitude: number;
   severity: string;
@@ -54,9 +55,20 @@ function requiredText(formData: FormData, name: string): string {
 }
 
 export async function POST(request: Request) {
-  let savedPhotoPath: string | undefined;
+  let savedPhotoKey: string | undefined;
 
   try {
+    const medusaUrl = getMedusaBackendUrl();
+    if (medusaUrl) {
+      const response = await fetch(`${medusaUrl}/mirror/reports`, {
+        method: "POST",
+        headers: { Authorization: request.headers.get("authorization") || "" },
+        body: await request.formData(),
+        cache: "no-store",
+      });
+      return forwardedResponse(response);
+    }
+
     const user = authenticateRequest(request);
     const formData = await request.formData();
     const latitudeText = requiredText(formData, "latitude");
@@ -126,12 +138,12 @@ export async function POST(request: Request) {
     }
 
     const objectKey = `report-photos/${randomUUID()}${extension}`;
-    const storageRoot = process.env.REPORT_UPLOAD_DIR
-      ? path.resolve(process.env.REPORT_UPLOAD_DIR)
-      : path.join(process.cwd(), "storage");
-    savedPhotoPath = path.join(storageRoot, objectKey);
-    await mkdir(path.dirname(savedPhotoPath), { recursive: true });
-    await writeFile(savedPhotoPath, Buffer.from(await photoValue.arrayBuffer()));
+    savedPhotoKey = objectKey;
+    await saveReportPhoto(
+      objectKey,
+      new Uint8Array(await photoValue.arrayBuffer()),
+      photoValue.type,
+    );
 
     const connection = await getConnection();
 
@@ -234,8 +246,8 @@ export async function POST(request: Request) {
       await connection.close();
     }
   } catch (error) {
-    if (savedPhotoPath) {
-      await unlink(savedPhotoPath).catch(() => undefined);
+    if (savedPhotoKey) {
+      await deleteReportPhoto(savedPhotoKey).catch(() => undefined);
     }
     return apiError(error);
   }
@@ -243,6 +255,15 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    const medusaUrl = getMedusaBackendUrl();
+    if (medusaUrl) {
+      const response = await fetch(`${medusaUrl}/mirror/reports`, {
+        headers: { Authorization: request.headers.get("authorization") || "" },
+        cache: "no-store",
+      });
+      return forwardedResponse(response);
+    }
+
     const user = authenticateRequest(request);
     const connection = await getConnection();
 
@@ -259,7 +280,11 @@ export async function GET(request: Request) {
                   p.longitude AS "longitude",
                   p.severity AS "severity",
                   p.current_status AS "status",
-                  r.submitted_at AS "submittedAt"
+                  r.submitted_at AS "submittedAt",
+                  (SELECT MIN(rp.id)
+                     FROM MIRROR_REPORT_PHOTOS rp
+                    WHERE rp.report_id = r.id
+                      AND rp.evidence_type = 'before') AS "photoId"
              FROM MIRROR_REPORTS r
              JOIN MIRROR_POTHOLES p ON p.id = r.pothole_id
             WHERE r.citizen_id = :userId
@@ -270,7 +295,10 @@ export async function GET(request: Request) {
 
       return NextResponse.json({
         user: { name: userResult.rows?.[0]?.name || "Citizen" },
-        reports: reportResult.rows || [],
+        reports: (reportResult.rows || []).map((report) => ({
+          ...report,
+          photoUrl: report.photoId ? `/api/report-photos/${report.photoId}` : null,
+        })),
       });
     } finally {
       await connection.close();

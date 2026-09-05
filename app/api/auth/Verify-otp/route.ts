@@ -3,6 +3,7 @@ import { getConnection } from '@/lib/db';
 import oracledb from 'oracledb';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { forwardedResponse, getMedusaBackendUrl } from '@/lib/medusa-proxy';
 
 type OtpRow = {
     otpHash: string;
@@ -34,6 +35,17 @@ function isValidOtp(otp: string, storedValue: string): boolean {
 export async function POST(request: Request) {
     try {
         const { phone, otp, name, email } = await request.json();
+
+        const medusaUrl = getMedusaBackendUrl();
+        if (medusaUrl) {
+            const response = await fetch(`${medusaUrl}/mirror/auth/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone, otp, name, email }),
+                cache: 'no-store',
+            });
+            return forwardedResponse(response);
+        }
         const normalizedName = typeof name === 'string' ? name.trim() : '';
         const normalizedEmail = typeof email === 'string' ? email.trim() : '';
 

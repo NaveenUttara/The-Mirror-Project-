@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 import './mirror.css';
 
 type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
@@ -14,7 +15,43 @@ type CitizenReport = {
     severity: string;
     status: string;
     submittedAt: string;
+    photoUrl: string | null;
 };
+
+function ReportPhoto({ photoUrl, token, reportId }: { photoUrl: string; token: string; reportId: string }) {
+    const [source, setSource] = useState('');
+
+    useEffect(() => {
+        const controller = new AbortController();
+        let objectUrl = '';
+
+        void fetch(photoUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+        })
+            .then((response) => {
+                if (!response.ok) throw new Error('Photograph could not be loaded');
+                return response.blob();
+            })
+            .then((blob) => {
+                objectUrl = URL.createObjectURL(blob);
+                setSource(objectUrl);
+            })
+            .catch((error) => {
+                if (error instanceof DOMException && error.name === 'AbortError') return;
+                console.error(error);
+            });
+
+        return () => {
+            controller.abort();
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [photoUrl, token]);
+
+    return source
+        ? <Image className="report-photo" src={source} alt={`Pothole evidence for report ${reportId}`} width={88} height={68} unoptimized />
+        : <div className="report-photo report-photo-loading" aria-label="Loading report photograph">Loading photo…</div>;
+}
 
 export default function Home() {
     const [currentPage, setCurrentPage] = useState<PageId>('home');
@@ -426,8 +463,11 @@ export default function Home() {
                             {!reportsBusy && reports.length === 0 && <div className="card empty-reports">No reports submitted yet.</div>}
                             {!reportsBusy && reports.map((report) => (
                                 <div className="report-row" key={report.reportId}>
+                                    {report.photoUrl
+                                        ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} />
+                                        : <div className="report-photo report-photo-loading">No photo</div>}
                                     <div><h4>{report.reportId}</h4><p>{Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)} · {new Date(report.submittedAt).toLocaleDateString('en-IN')}</p></div>
-                                    <div><span className={`badge ${report.status === 'closed' ? 'green' : 'orange'}`}>{statusLabel(report.status)}</span><br /><small className="muted-text">{report.potholePublicId} · {statusLabel(report.severity)} severity</small></div>
+                                    <div className="report-row-status"><span className={`badge ${report.status === 'closed' ? 'green' : 'orange'}`}>{statusLabel(report.status)}</span><br /><small className="muted-text">{report.potholePublicId} · {statusLabel(report.severity)} severity</small></div>
                                 </div>
                             ))}
                         </div>
