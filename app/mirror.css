@@ -1,15 +1,15 @@
         :root {
-            --ink: #12212b;
-            --muted: #667781;
-            --line: #dfe8e5;
-            --bg: #f5f8f6;
+            --ink: #1a1d21;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --bg: #f4f5f7;
             --card: #fff;
-            --green: #044e37;
-            --green2: #ccee37;
+            --green: #4b5563;
+            --green2: #e5e7eb;
             --orange: #f59f00;
             --red: #d94841;
             --blue: #2878c8;
-            --shadow: 0 14px 35px rgba(18, 33, 43, .08);
+            --shadow: 0 14px 35px rgba(26, 29, 33, .08);
             --radius: 22px
         }
 
@@ -152,11 +152,11 @@
             padding: 15px 20px;
             border-radius: 13px;
             font-weight: 750;
-            box-shadow: 0 8px 18px rgba(4, 78, 55, .2)
+            box-shadow: 0 8px 18px rgba(75, 85, 99, .25)
         }
 
         .primary:hover {
-            background: #023324
+            background: #374151
         }
 
         .secondary {
@@ -169,7 +169,7 @@
         }
 
         .hero-card {
-            background: linear-gradient(145deg, #033626, #044e37);
+            background: linear-gradient(145deg, #374151, #4b5563);
             border-radius: 30px;
             padding: 28px;
             color: #fff;
@@ -320,8 +320,8 @@
             width: 100%;
             padding: 13px 14px;
             border-radius: 12px;
-            border: 1px solid #ccd9d5;
-            background: #fbfdfc;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
             outline: 0
         }
 
@@ -459,8 +459,8 @@
         }
 
         .badge.green {
-            background: #d4f3e8;
-            color: #044e37
+            background: #e5e7eb;
+            color: #374151
         }
 
         .badge.orange {
@@ -475,8 +475,8 @@
 
         .map {
             height: 190px;
-            background: linear-gradient(135deg, #dbf2ea, #bce0d0);
-            border: 1px solid #a3ccbc;
+            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+            border: 1px solid #9ca3af;
             border-radius: 17px;
             position: relative;
             overflow: hidden
@@ -552,9 +552,9 @@
 
         .upload button {
             padding: 22px 12px;
-            border: 1px dashed #9bc4b4;
+            border: 1px dashed #9ca3af;
             border-radius: 14px;
-            background: #fbfdfc;
+            background: #f9fafb;
             color: var(--green);
             font-weight: 750
         }
@@ -567,7 +567,7 @@
 
         .timeline {
             margin-top: 20px;
-            border-left: 2px solid #bce0d0;
+            border-left: 2px solid #d1d5db;
             padding-left: 22px
         }
 
@@ -590,7 +590,7 @@
 
         .event.pending:before {
             background: #fff;
-            border: 2px solid #9bc4b4
+            border: 2px solid #9ca3af
         }
 
         .event strong {
@@ -829,7 +829,7 @@
         .location-button {
             width: 100%;
             color: var(--green);
-            border-color: #b9d9cb
+            border-color: #9ca3af
         }
 
         .report-map,
@@ -863,7 +863,7 @@
 
         .report-id-card {
             margin: 25px 0;
-            border-color: #a3ccbc;
+            border-color: #9ca3af;
             background: var(--green2)
         }
 
@@ -935,7 +935,7 @@
         .public-pin-three {
             left: 68%;
             top: 62%;
-            background: #044e37
+            background: #4b5563
         }
 
         .public-pin-four {
