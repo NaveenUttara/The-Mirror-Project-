@@ -17,6 +17,12 @@ type CitizenReport = {
     submittedAt: string;
     photoUrl: string | null;
 };
+type PublicImpact = {
+    totalReports: number;
+    underReview: number;
+    inProgress: number;
+    repaired: number;
+};
 
 function ReportPhoto({ photoUrl, token, reportId }: { photoUrl: string; token: string; reportId: string }) {
     const [source, setSource] = useState('');
@@ -69,6 +75,7 @@ export default function Home() {
     const [userName, setUserName] = useState('Citizen');
     const [reports, setReports] = useState<CitizenReport[]>([]);
     const [reportsBusy, setReportsBusy] = useState(false);
+    const [publicImpact, setPublicImpact] = useState<PublicImpact | null>(null);
     const [severity, setSeverity] = useState('Medium');
     const [description, setDescription] = useState('');
     const [latitude, setLatitude] = useState('');
@@ -132,6 +139,26 @@ export default function Home() {
         showPage('dashboard');
         void loadReports();
     };
+
+    const loadPublicImpact = async () => {
+        try {
+            const response = await fetch('/api/public-impact', { cache: 'no-store' });
+            if (!response.ok) return;
+            setPublicImpact(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        if (authToken) {
+            void loadReports(authToken);
+        }
+    }, [authToken]);
+
+    useEffect(() => {
+        void loadPublicImpact();
+    }, []);
 
     const handleSendOtp = async () => {
         if (!phoneConsent) {
@@ -351,6 +378,7 @@ export default function Home() {
     const underVerificationCount = reports.filter((report) => ['reported', 'verified', 'assigned'].includes(report.status)).length;
     const inProgressCount = reports.filter((report) => ['in_progress', 'repaired', 'reopened', 'escalated'].includes(report.status)).length;
     const closedCount = reports.filter((report) => report.status === 'closed').length;
+    const latestReport = reports[0];
 
     const pageClass = (page: PageId) => `page${currentPage === page ? ' active' : ''}`;
 
@@ -382,8 +410,15 @@ export default function Home() {
                             </div>
                         </div>
                         <div className="hero-card">
-                            <h3>Visible action, not just complaints.</h3>
-                            <p>Verified public statistics will appear here when real reports and authority updates are available.</p>
+                            {latestReport ? <>
+                                <h3>Latest report status</h3>
+                                <div className="mini-stat"><span>GPS location</span><strong>{Number(latestReport.latitude).toFixed(5)}, {Number(latestReport.longitude).toFixed(5)}</strong></div>
+                                <div className="mini-stat"><span>Status</span><strong>{statusLabel(latestReport.status)}</strong></div>
+                                <p>Your GPS location is visible only in your signed-in report view.</p>
+                            </> : <>
+                                <h3>Visible action, not just complaints.</h3>
+                                <p>Sign in to see the GPS location and status of your own submitted reports.</p>
+                            </>}
                         </div>
                     </div>
                     <div className="section">
@@ -404,7 +439,12 @@ export default function Home() {
                     </div>
                     <div className="section">
                         <h2>Current Karnataka impact</h2>
-                        <div className="card unverified-impact">Verified public statistics will appear when real reports are available.</div>
+                        <div className="impact">
+                            <div className="card"><strong>{publicImpact?.totalReports ?? '—'}</strong><span>Reports received</span></div>
+                            <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>Under review</span></div>
+                            <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>Work in progress</span></div>
+                            <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>Repaired</span></div>
+                        </div>
                     </div>
                 </section>
 
@@ -522,7 +562,12 @@ export default function Home() {
 
                 <section className={pageClass('impact')}>
                     <div className="eyebrow">Public transparency</div><h2>Karnataka impact dashboard</h2><p className="sub">Aggregated statistics only. No private citizen information is exposed.</p>
-                    <div className="card unverified-impact impact-top">Verified public statistics and map information will appear after real reports have been reviewed.</div>
+                    <div className="impact impact-top">
+                        <div className="card"><strong>{publicImpact?.totalReports ?? '—'}</strong><span>Reports received</span></div>
+                        <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>Under review</span></div>
+                        <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>Work in progress</span></div>
+                        <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>Repaired</span></div>
+                    </div>
                 </section>
 
                 <footer className="footer"><span>© 2026 The Mirror Project · Karnataka pilot prototype</span><span><button className="footer-link" type="button" onClick={() => setLegalType('privacy')}>Privacy</button> · <button className="footer-link" type="button" onClick={() => setLegalType('terms')}>Terms</button> · Accessibility</span></footer>
