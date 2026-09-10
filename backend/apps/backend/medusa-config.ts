@@ -65,6 +65,14 @@ module.exports = defineConfig({
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    databaseDriverOptions: {
+      pool: {
+        min: 0,
+        max: 10,
+        idleTimeoutMillis: 300000,
+        reapIntervalMillis: 30000,
+      },
+    },
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
