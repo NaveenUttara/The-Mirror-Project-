@@ -101,7 +101,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     })
     reportId = report.id
 
-    await service.createMirrorReportPhotoes({
+    await service.createMirrorReportPhotos({
       storage_key: objectKey,
       original_name: photo.originalname || "pothole-photo",
       mime_type: photo.mimetype,
@@ -161,7 +161,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const result = await Promise.all(reports.map(async (report) => {
       const [pothole, photos] = await Promise.all([
         service.retrieveMirrorPothole(report.pothole_id),
-        service.listMirrorReportPhotoes({ report_id: report.id }, { take: 1 }),
+        service.listMirrorReportPhotos({ report_id: report.id }, { take: 1 }),
       ])
       return {
         reportId: report.report_id,
