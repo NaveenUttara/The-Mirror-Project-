@@ -210,6 +210,33 @@
             font-size: 25px
         }
 
+        .hero-map {
+            height: 235px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, #d1d5db, #9ca3af);
+            border-color: rgba(255, 255, 255, .35)
+        }
+
+        .hero-map-legend {
+            position: relative;
+            z-index: 1;
+            margin-top: 12px;
+            color: rgba(255, 255, 255, .88)
+        }
+
+        .hero-map-empty {
+            color: #374151
+        }
+
+        .hero-map-note {
+            position: relative;
+            z-index: 1;
+            margin: 12px 0 0;
+            color: rgba(255, 255, 255, .86);
+            font-size: 13px
+        }
+
         .section {
             margin-top: 58px
         }

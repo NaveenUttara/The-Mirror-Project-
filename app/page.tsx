@@ -438,15 +438,13 @@ export default function Home() {
                             </div>
                         </div>
                         <div className="hero-card">
-                            {latestReport ? <>
-                                <h3>Latest report status</h3>
-                                <div className="mini-stat"><span>GPS location</span><strong>{Number(latestReport.latitude).toFixed(5)}, {Number(latestReport.longitude).toFixed(5)}</strong></div>
-                                <div className="mini-stat"><span>Status</span><strong>{statusLabel(latestReport.status)}</strong></div>
-                                <p>Your GPS location is visible only in your signed-in report view.</p>
-                            </> : <>
-                                <h3>Visible action, not just complaints.</h3>
-                                <p>Sign in to see the GPS location and status of your own submitted reports.</p>
-                            </>}
+                            <h3>Live pothole map</h3>
+                            <div className="map hero-map" aria-label="Map of reported pothole locations">
+                                {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${statusLabel(issue.severity)} severity · ${statusLabel(issue.status)}`} aria-label={`${statusLabel(issue.severity)} severity issue, ${statusLabel(issue.status)}`} />)}
+                                {publicIssues.length === 0 && <p className="map-empty hero-map-empty">{publicImpact ? 'No potholes publicly shown yet.' : 'Loading reported potholes…'}</p>}
+                            </div>
+                            <div className="map-legend hero-map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />Low</span><span><i className="legend-dot medium" />Medium</span><span><i className="legend-dot high" />High</span><span><i className="legend-dot critical" />Critical</span></div>
+                            {latestReport && <p className="hero-map-note">Your latest report: <strong>{statusLabel(latestReport.status)}</strong></p>}
                         </div>
                     </div>
                     <div className="section">
