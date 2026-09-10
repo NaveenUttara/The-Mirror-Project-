@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm run build --workspace @dtc/backend && cd apps/backend/.medusa/server && npm install --omit=dev"
+
+[deploy]
+# Keep empty until DATABASE_URL uses Neon direct (non-pooler) connection.
+# Then set: cd apps/backend && npm run predeploy
+startCommand = "cd apps/backend/.medusa/server && npm run start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
