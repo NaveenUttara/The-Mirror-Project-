@@ -12,6 +12,17 @@ const PHOTO_EXTENSIONS: Record<string, string> = {
 }
 const SEVERITIES = new Set(["low", "medium", "high", "critical"])
 
+// Medusa's runtime pluralizer uses "Photos". Its generated TypeScript type
+// currently suggests the irregular spelling "Photoes", so keep this adapter
+// limited to the two runtime-generated photo methods.
+type RuntimePhotoService = {
+  createMirrorReportPhotos(data: Record<string, unknown>): Promise<unknown>
+  listMirrorReportPhotos(
+    filters: Record<string, unknown>,
+    config: { take: number },
+  ): Promise<Array<{ id: string }>>
+}
+
 function text(body: Record<string, unknown>, name: string): string {
   return typeof body[name] === "string" ? body[name].trim() : ""
 }
@@ -26,6 +37,7 @@ function errorResponse(res: MedusaResponse, error: unknown) {
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const service = req.scope.resolve(MIRROR_MODULE) as MirrorModuleService
+  const photoService = service as unknown as RuntimePhotoService
   let objectKey: string | undefined
   let potholeId: string | undefined
   let reportId: string | undefined
@@ -101,7 +113,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     })
     reportId = report.id
 
-    await service.createMirrorReportPhotos({
+    await photoService.createMirrorReportPhotos({
       storage_key: objectKey,
       original_name: photo.originalname || "pothole-photo",
       mime_type: photo.mimetype,
@@ -152,6 +164,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const service = req.scope.resolve(MIRROR_MODULE) as MirrorModuleService
+  const photoService = service as unknown as RuntimePhotoService
   try {
     const user = await authenticateMirrorRequest(req, service)
     const reports = await service.listMirrorReports(
@@ -161,7 +174,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const result = await Promise.all(reports.map(async (report) => {
       const [pothole, photos] = await Promise.all([
         service.retrieveMirrorPothole(report.pothole_id),
-        service.listMirrorReportPhotos({ report_id: report.id }, { take: 1 }),
+        photoService.listMirrorReportPhotos({ report_id: report.id }, { take: 1 }),
       ])
       return {
         reportId: report.report_id,
