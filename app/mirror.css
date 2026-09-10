@@ -921,6 +921,82 @@
             height: 370px
         }
 
+        .map-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px
+        }
+
+        .map-heading h3 {
+            margin: 0;
+            font-size: 18px
+        }
+
+        .map-heading p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .map-heading > span {
+            white-space: nowrap;
+            border-radius: 999px;
+            padding: 6px 9px;
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 750
+        }
+
+        .public-pin {
+            z-index: 2;
+            transition: transform .15s ease
+        }
+
+        .public-pin:hover {
+            transform: rotate(-45deg) scale(1.2)
+        }
+
+        .map-empty {
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            margin: 0;
+            color: #4b5563;
+            font-weight: 700
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 18px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700
+        }
+
+        .map-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%
+        }
+
+        .legend-dot.low { background: #2f8f5b }
+        .legend-dot.medium { background: #eab308 }
+        .legend-dot.high { background: #f97316 }
+        .legend-dot.critical { background: #dc2626 }
+
         .public-pin-one {
             left: 31%;
             top: 42%

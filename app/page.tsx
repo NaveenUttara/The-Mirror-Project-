@@ -22,7 +22,22 @@ type PublicImpact = {
     underReview: number;
     inProgress: number;
     repaired: number;
+    issues: PublicIssue[];
 };
+type PublicIssue = {
+    id: string;
+    latitude: number;
+    longitude: number;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    status: string;
+};
+
+const severityColor = (severity: PublicIssue['severity']) => ({
+    low: '#2f8f5b',
+    medium: '#eab308',
+    high: '#f97316',
+    critical: '#dc2626',
+}[severity]);
 
 function ReportPhoto({ photoUrl, token, reportId }: { photoUrl: string; token: string; reportId: string }) {
     const [source, setSource] = useState('');
@@ -379,6 +394,19 @@ export default function Home() {
     const inProgressCount = reports.filter((report) => ['in_progress', 'repaired', 'reopened', 'escalated'].includes(report.status)).length;
     const closedCount = reports.filter((report) => report.status === 'closed').length;
     const latestReport = reports[0];
+    const publicIssues = publicImpact?.issues || [];
+    const issueLatitudes = publicIssues.map((issue) => issue.latitude);
+    const issueLongitudes = publicIssues.map((issue) => issue.longitude);
+    const minLatitude = issueLatitudes.length ? Math.min(...issueLatitudes) : 0;
+    const maxLatitude = issueLatitudes.length ? Math.max(...issueLatitudes) : 0;
+    const minLongitude = issueLongitudes.length ? Math.min(...issueLongitudes) : 0;
+    const maxLongitude = issueLongitudes.length ? Math.max(...issueLongitudes) : 0;
+    const latitudeRange = maxLatitude - minLatitude;
+    const longitudeRange = maxLongitude - minLongitude;
+    const pinPosition = (issue: PublicIssue) => ({
+        left: `${latitudeRange ? 12 + ((issue.latitude - minLatitude) / latitudeRange) * 76 : 50}%`,
+        top: `${longitudeRange ? 88 - ((issue.longitude - minLongitude) / longitudeRange) * 76 : 50}%`,
+    });
 
     const pageClass = (page: PageId) => `page${currentPage === page ? ' active' : ''}`;
 
@@ -567,6 +595,14 @@ export default function Home() {
                         <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>Under review</span></div>
                         <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>Work in progress</span></div>
                         <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>Repaired</span></div>
+                    </div>
+                    <div className="card public-map-card">
+                        <div className="map-heading"><div><h3>Reported issue locations</h3><p>Approximate locations only, rounded to protect reporter privacy.</p></div><span>{publicIssues.length} visible</span></div>
+                        <div className="map public-map" aria-label="Map of reported pothole locations">
+                            {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${statusLabel(issue.severity)} severity · ${statusLabel(issue.status)}`} aria-label={`${statusLabel(issue.severity)} severity issue, ${statusLabel(issue.status)}`} />)}
+                            {publicIssues.length === 0 && <p className="map-empty">No public issue locations yet.</p>}
+                        </div>
+                        <div className="map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />Low</span><span><i className="legend-dot medium" />Medium</span><span><i className="legend-dot high" />High</span><span><i className="legend-dot critical" />Critical</span></div>
                     </div>
                 </section>
 
