@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
-import crypto from 'crypto';
+import { hashOtp } from '@/lib/otp-crypto';
+import { isOracleConfigured } from '@/lib/oracle-config';
+import { isDemoMode, saveDemoOtpRequest } from '@/lib/demo-store';
 import { forwardedResponse, getMedusaBackendUrl } from '@/lib/medusa-proxy';
 
 export async function POST(request: Request) {
@@ -30,26 +32,27 @@ export async function POST(request: Request) {
             ? '123456'
             : Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Hash the OTP before saving to database for security
-        const salt = crypto.randomBytes(16).toString('hex');
-        const otpHash = crypto.scryptSync(otp, salt, 64).toString('hex') + ':' + salt;
+        const otpHash = hashOtp(otp);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        const useDemoStore = isDemoMode() || !isOracleConfigured();
 
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Expires in 10 minutes
+        if (useDemoStore) {
+            saveDemoOtpRequest(phone, otp);
+        } else {
+            const connection = await getConnection();
 
-        // Save the hashed OTP to the FRSCMP Oracle database.
-        const connection = await getConnection();
-
-        try {
-            await connection.execute(
-                `INSERT INTO MIRROR_OTP_REQUESTS
-                    (id, phone, otp_hash, expires_at, attempts)
-                 VALUES
-                    (MIRROR_OTP_REQ_SEQ.NEXTVAL, :phone, :otpHash, :expiresAt, 0)`,
-                { phone, otpHash, expiresAt },
-                { autoCommit: true }
-            );
-        } finally {
-            await connection.close();
+            try {
+                await connection.execute(
+                    `INSERT INTO MIRROR_OTP_REQUESTS
+                        (id, phone, otp_hash, expires_at, attempts)
+                     VALUES
+                        (MIRROR_OTP_REQ_SEQ.NEXTVAL, :phone, :otpHash, :expiresAt, 0)`,
+                    { phone, otpHash, expiresAt },
+                    { autoCommit: true }
+                );
+            } finally {
+                await connection.close();
+            }
         }
 
         // Optional: Trigger external SMS gateway if API key is present
@@ -71,7 +74,8 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             message: isTemporaryOtp ? 'Temporary OTP generated' : 'OTP sent successfully',
-            debugOtp: isTemporaryOtp ? otp : undefined
+            debugOtp: isTemporaryOtp ? otp : undefined,
+            demoMode: useDemoStore,
         });
 
     } catch (error: unknown) {

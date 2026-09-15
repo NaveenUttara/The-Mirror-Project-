@@ -1,4 +1,5 @@
 import jwt, { type JwtPayload } from "jsonwebtoken";
+import { getJwtSecret } from "@/lib/jwt-secret";
 
 export type AuthenticatedUser = {
   userId: string;
@@ -13,14 +14,8 @@ export function authenticateRequest(request: Request): AuthenticatedUser {
     throw new Error("AUTH_REQUIRED");
   }
 
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("Missing required environment variable: JWT_SECRET");
-  }
-
   try {
-    const payload = jwt.verify(authorization.slice(7), secret) as JwtPayload;
+    const payload = jwt.verify(authorization.slice(7), getJwtSecret()) as JwtPayload;
 
     if (!payload.userId || !payload.phone) {
       throw new Error("AUTH_REQUIRED");
