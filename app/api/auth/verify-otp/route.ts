@@ -8,7 +8,8 @@ import {
     upsertDemoUser,
 } from '@/lib/demo-store';
 import { getJwtSecret } from '@/lib/jwt-secret';
-import { forwardedResponse, getMedusaBackendUrl } from '@/lib/medusa-proxy';
+import { fetchMedusaAuth } from '@/lib/auth-backend';
+import { forwardedResponse } from '@/lib/medusa-proxy';
 
 type UserRow = {
     id: number | string;
@@ -22,15 +23,13 @@ export async function POST(request: Request) {
     try {
         const { phone, otp, name, email } = await request.json();
 
-        const medusaUrl = getMedusaBackendUrl();
-        if (medusaUrl) {
-            const response = await fetch(`${medusaUrl}/mirror/auth/verify-otp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, otp, name, email }),
-                cache: 'no-store',
-            });
-            return forwardedResponse(response);
+        const medusaResponse = await fetchMedusaAuth('/mirror/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, otp, name, email }),
+        });
+        if (medusaResponse) {
+            return forwardedResponse(medusaResponse);
         }
 
         const normalizedName = typeof name === 'string' ? name.trim() : '';

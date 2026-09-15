@@ -1,20 +1,19 @@
 import { NextResponse } from 'next/server';
 import { saveDemoOtpRequest } from '@/lib/demo-store';
-import { forwardedResponse, getMedusaBackendUrl } from '@/lib/medusa-proxy';
+import { fetchMedusaAuth } from '@/lib/auth-backend';
+import { forwardedResponse } from '@/lib/medusa-proxy';
 
 export async function POST(request: Request) {
     try {
         const { phone } = await request.json();
 
-        const medusaUrl = getMedusaBackendUrl();
-        if (medusaUrl) {
-            const response = await fetch(`${medusaUrl}/mirror/auth/request-otp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone }),
-                cache: 'no-store',
-            });
-            return forwardedResponse(response);
+        const medusaResponse = await fetchMedusaAuth('/mirror/auth/request-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone }),
+        });
+        if (medusaResponse) {
+            return forwardedResponse(medusaResponse);
         }
 
         if (!phone || phone.length < 10) {
