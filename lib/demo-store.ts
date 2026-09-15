@@ -17,10 +17,6 @@ const otpRequests = new Map<string, OtpEntry>();
 const users = new Map<string, DemoUser>();
 let nextUserId = 1;
 
-export function isDemoMode(): boolean {
-  return process.env.MIRROR_DEMO_MODE === "true";
-}
-
 export function saveDemoOtpRequest(phone: string, otp: string): void {
   otpRequests.set(phone, {
     otpHash: hashOtp(otp),

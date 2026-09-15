@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getConnection } from '@/lib/db';
-import { hashOtp } from '@/lib/otp-crypto';
-import { isOracleConfigured } from '@/lib/oracle-config';
-import { isDemoMode, saveDemoOtpRequest } from '@/lib/demo-store';
+import { saveDemoOtpRequest } from '@/lib/demo-store';
 import { forwardedResponse, getMedusaBackendUrl } from '@/lib/medusa-proxy';
 
 export async function POST(request: Request) {
@@ -32,28 +29,7 @@ export async function POST(request: Request) {
             ? '123456'
             : Math.floor(100000 + Math.random() * 900000).toString();
 
-        const otpHash = hashOtp(otp);
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-        const useDemoStore = isDemoMode() || !isOracleConfigured();
-
-        if (useDemoStore) {
-            saveDemoOtpRequest(phone, otp);
-        } else {
-            const connection = await getConnection();
-
-            try {
-                await connection.execute(
-                    `INSERT INTO MIRROR_OTP_REQUESTS
-                        (id, phone, otp_hash, expires_at, attempts)
-                     VALUES
-                        (MIRROR_OTP_REQ_SEQ.NEXTVAL, :phone, :otpHash, :expiresAt, 0)`,
-                    { phone, otpHash, expiresAt },
-                    { autoCommit: true }
-                );
-            } finally {
-                await connection.close();
-            }
-        }
+        saveDemoOtpRequest(phone, otp);
 
         // Optional: Trigger external SMS gateway if API key is present
         if (smsApiKey) {
@@ -75,7 +51,6 @@ export async function POST(request: Request) {
             success: true,
             message: isTemporaryOtp ? 'Temporary OTP generated' : 'OTP sent successfully',
             debugOtp: isTemporaryOtp ? otp : undefined,
-            demoMode: useDemoStore,
         });
 
     } catch (error: unknown) {
