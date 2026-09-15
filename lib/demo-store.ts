@@ -1,9 +1,4 @@
-import { hashOtp } from "@/lib/otp-crypto";
-
-type OtpEntry = {
-  otpHash: string;
-  expiresAt: Date;
-};
+import { createHash } from "crypto";
 
 type DemoUser = {
   id: string;
@@ -13,23 +8,10 @@ type DemoUser = {
   role: string;
 };
 
-const otpRequests = new Map<string, OtpEntry>();
 const users = new Map<string, DemoUser>();
-let nextUserId = 1;
 
-export function saveDemoOtpRequest(phone: string, otp: string): void {
-  otpRequests.set(phone, {
-    otpHash: hashOtp(otp),
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-  });
-}
-
-export function getDemoOtpRequest(phone: string): OtpEntry | undefined {
-  return otpRequests.get(phone);
-}
-
-export function deleteDemoOtpRequest(phone: string): void {
-  otpRequests.delete(phone);
+function demoUserId(phone: string): string {
+  return createHash("sha256").update(phone).digest("hex").slice(0, 12);
 }
 
 export function findDemoUser(phone: string): DemoUser | undefined {
@@ -54,7 +36,7 @@ export function upsertDemoUser(
   }
 
   const created: DemoUser = {
-    id: String(nextUserId++),
+    id: demoUserId(phone),
     name,
     phone,
     email,
@@ -62,4 +44,17 @@ export function upsertDemoUser(
   };
   users.set(phone, created);
   return created;
+}
+
+export function getOrCreateDemoUser(
+  phone: string,
+  name: string,
+  email: string | null,
+): DemoUser {
+  const existing = users.get(phone);
+  if (existing) {
+    return existing;
+  }
+
+  return upsertDemoUser(phone, name, email);
 }

@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { isValidOtp } from '@/lib/otp-crypto';
-import {
-    deleteDemoOtpRequest,
-    findDemoUser,
-    getDemoOtpRequest,
-    upsertDemoUser,
-} from '@/lib/demo-store';
+import { findDemoUser, upsertDemoUser } from '@/lib/demo-store';
+import { verifyOtpSession } from '@/lib/otp-session';
 import { getJwtSecret } from '@/lib/jwt-secret';
 import { fetchMedusaAuth } from '@/lib/auth-backend';
 import { forwardedResponse } from '@/lib/medusa-proxy';
@@ -21,7 +16,7 @@ type UserRow = {
 
 export async function POST(request: Request) {
     try {
-        const { phone, otp, name, email } = await request.json();
+        const { phone, otp, name, email, otpSession } = await request.json();
 
         const medusaResponse = await fetchMedusaAuth('/mirror/auth/verify-otp', {
             method: 'POST',
@@ -39,12 +34,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Phone and OTP are required' }, { status: 400 });
         }
 
-        const otpRecord = getDemoOtpRequest(phone);
-
         if (
-            !otpRecord
-            || new Date(otpRecord.expiresAt).getTime() <= Date.now()
-            || !isValidOtp(String(otp), otpRecord.otpHash)
+            typeof otpSession !== 'string'
+            || !verifyOtpSession(otpSession, phone, String(otp))
         ) {
             return NextResponse.json(
                 { error: 'Invalid or expired OTP' },
@@ -92,8 +84,6 @@ export async function POST(request: Request) {
                 normalizedEmail || null,
             );
         }
-
-        deleteDemoOtpRequest(phone);
 
         const token = jwt.sign(
             { userId: user.id, phone: user.phone, role: user.role },

@@ -79,6 +79,7 @@ export default function Home() {
     const [phone, setPhone] = useState('');
     const [phoneConsent, setPhoneConsent] = useState(false);
     const [otp, setOtp] = useState('');
+    const [otpSession, setOtpSession] = useState('');
     const [showOtpBox, setShowOtpBox] = useState(false);
     const [showProfileBox, setShowProfileBox] = useState(false);
     const [profileName, setProfileName] = useState('');
@@ -198,6 +199,7 @@ export default function Home() {
                 return;
             }
             setShowProfileBox(false);
+            setOtpSession(typeof data.otpSession === 'string' ? data.otpSession : '');
             setShowOtpBox(true);
             showToast(`OTP sent${data.debugOtp ? `. Temporary OTP: ${data.debugOtp}` : ''}`);
         } catch (error) {
@@ -220,14 +222,29 @@ export default function Home() {
 
         setAuthBusy(true);
         try {
+            let savedName: string | undefined;
+            let savedEmail: string | undefined;
+            const savedProfile = window.localStorage.getItem(`mirror_profile_${phone.trim()}`);
+            if (savedProfile) {
+                try {
+                    const parsed = JSON.parse(savedProfile) as { name?: string; email?: string };
+                    savedName = parsed.name?.trim() || undefined;
+                    savedEmail = parsed.email?.trim() || undefined;
+                } catch {
+                    savedName = undefined;
+                    savedEmail = undefined;
+                }
+            }
+
             const response = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     phone: phone.trim(),
                     otp: otp.trim(),
-                    name: showProfileBox ? profileName.trim() : undefined,
-                    email: showProfileBox ? profileEmail.trim() : undefined,
+                    otpSession,
+                    name: showProfileBox ? profileName.trim() : savedName,
+                    email: showProfileBox ? profileEmail.trim() : savedEmail,
                 }),
             });
             const data = await response.json().catch(() => ({}));
@@ -241,6 +258,10 @@ export default function Home() {
                 return;
             }
             window.localStorage.setItem('token', data.token);
+            window.localStorage.setItem(
+                `mirror_profile_${phone.trim()}`,
+                JSON.stringify({ name: data.user?.name || profileName.trim(), email: data.user?.email || profileEmail.trim() || '' }),
+            );
             setAuthToken(data.token);
             setUserName(data.user?.name || 'Citizen');
             await loadReports(data.token);

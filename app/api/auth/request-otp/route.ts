@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { saveDemoOtpRequest } from '@/lib/demo-store';
+import { createOtpSession } from '@/lib/otp-session';
 import { fetchMedusaAuth } from '@/lib/auth-backend';
 import { forwardedResponse } from '@/lib/medusa-proxy';
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
             ? '123456'
             : Math.floor(100000 + Math.random() * 900000).toString();
 
-        saveDemoOtpRequest(phone, otp);
+        const otpSession = createOtpSession(phone, otp);
 
         // Optional: Trigger external SMS gateway if API key is present
         if (smsApiKey) {
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
             success: true,
             message: isTemporaryOtp ? 'Temporary OTP generated' : 'OTP sent successfully',
             debugOtp: isTemporaryOtp ? otp : undefined,
+            otpSession,
         });
 
     } catch (error: unknown) {
