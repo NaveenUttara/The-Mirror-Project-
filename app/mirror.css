@@ -948,6 +948,44 @@
             height: 370px
         }
 
+        .public-issue-list {
+            margin-top: 24px
+        }
+
+        .public-issue-list h3 {
+            margin: 0 0 6px;
+            font-size: 20px
+        }
+
+        .issue-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 14px
+        }
+
+        .issue-row {
+            padding: 16px 18px
+        }
+
+        .issue-row-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 6px
+        }
+
+        .issue-row p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .empty-issue-list {
+            color: var(--muted);
+            font-weight: 700
+        }
+
         .map-heading {
             display: flex;
             align-items: flex-start;
