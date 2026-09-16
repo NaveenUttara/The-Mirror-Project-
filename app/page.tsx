@@ -87,10 +87,6 @@ export default function Home() {
     const [currentPage, setCurrentPage] = useState<PageId>('home');
     const [phone, setPhone] = useState('');
     const [phoneConsent, setPhoneConsent] = useState(false);
-    const [otp, setOtp] = useState('');
-    const [otpSession, setOtpSession] = useState('');
-    const [showOtpBox, setShowOtpBox] = useState(false);
-    const [showProfileBox, setShowProfileBox] = useState(false);
     const [profileName, setProfileName] = useState('');
     const [profileEmail, setProfileEmail] = useState('');
     const [authBusy, setAuthBusy] = useState(false);
@@ -203,7 +199,7 @@ export default function Home() {
         showToast(t(next).toasts[next === 'kn' ? 'languageSwitchedKn' : 'languageSwitchedEn']);
     };
 
-    const handleSendOtp = async () => {
+    const handleLogin = async () => {
         if (!phoneConsent) {
             showToast(copy.toasts.acceptTerms);
             return;
@@ -212,91 +208,41 @@ export default function Home() {
             showToast(copy.toasts.invalidPhone);
             return;
         }
-
-        setAuthBusy(true);
-        try {
-            const response = await fetch('/api/auth/request-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: phone.trim() }),
-            });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok) {
-                showToast(data.error || copy.toasts.otpFailed);
-                return;
-            }
-            setShowProfileBox(false);
-            setOtpSession(typeof data.otpSession === 'string' ? data.otpSession : '');
-            setShowOtpBox(true);
-            showToast(`${copy.toasts.otpSent}${data.debugOtp ? `. ${copy.toasts.tempOtp} ${data.debugOtp}` : ''}`);
-        } catch (error) {
-            console.error(error);
-            showToast(copy.toasts.networkOtp);
-        } finally {
-            setAuthBusy(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        if (!otp.trim()) {
-            showToast(copy.toasts.enterOtp);
-            return;
-        }
-        if (showProfileBox && !profileName.trim()) {
+        if (!profileName.trim()) {
             showToast(copy.toasts.enterName);
             return;
         }
 
         setAuthBusy(true);
         try {
-            let savedName: string | undefined;
-            let savedEmail: string | undefined;
-            const savedProfile = window.localStorage.getItem(`mirror_profile_${phone.trim()}`);
-            if (savedProfile) {
-                try {
-                    const parsed = JSON.parse(savedProfile) as { name?: string; email?: string };
-                    savedName = parsed.name?.trim() || undefined;
-                    savedEmail = parsed.email?.trim() || undefined;
-                } catch {
-                    savedName = undefined;
-                    savedEmail = undefined;
-                }
-            }
-
-            const response = await fetch('/api/auth/verify-otp', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     phone: phone.trim(),
-                    otp: otp.trim(),
-                    otpSession,
-                    name: showProfileBox ? profileName.trim() : savedName,
-                    email: showProfileBox ? profileEmail.trim() : savedEmail,
+                    name: profileName.trim(),
+                    email: profileEmail.trim(),
                 }),
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showToast(data.error || copy.toasts.incorrectOtp);
+                showToast(data.error || copy.toasts.loginFailed);
                 return;
             }
-            if (data.profileRequired) {
-                setShowProfileBox(true);
-                showToast(copy.toasts.otpVerifiedProfile);
-                return;
-            }
+
             window.localStorage.setItem('token', data.token);
             window.localStorage.setItem(
                 `mirror_profile_${phone.trim()}`,
                 JSON.stringify({ name: data.user?.name || profileName.trim(), email: data.user?.email || profileEmail.trim() || '' }),
             );
             setAuthToken(data.token);
-            setUserName(data.user?.name || 'Citizen');
+            setUserName(data.user?.name || profileName.trim());
             await loadReports(data.token);
             showPage('dashboard');
-            showToast(`${copy.toasts.welcome} ${data.user?.name || 'Citizen'}`);
+            showToast(`${copy.toasts.welcome} ${data.user?.name || profileName.trim()}`);
         } catch (error) {
             console.error(error);
-            showToast(copy.toasts.networkVerify);
+            showToast(copy.toasts.networkLogin);
         } finally {
             setAuthBusy(false);
         }
@@ -539,33 +485,23 @@ export default function Home() {
                         <p className="sub">{copy.signInSub}</p>
                         <div className="field">
                             <label htmlFor="phone">{copy.mobileNumber}</label>
-                            <input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={copy.phonePlaceholder} />
+                            <input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={copy.phonePlaceholder} inputMode="tel" />
+                        </div>
+                        <div className="field">
+                            <label htmlFor="profileName">{copy.name} <span aria-hidden="true">*</span></label>
+                            <input id="profileName" value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder={copy.namePlaceholder} maxLength={150} required />
+                        </div>
+                        <div className="field">
+                            <label htmlFor="profileEmail">{copy.email} <span className="optional-label">{copy.optional}</span></label>
+                            <input id="profileEmail" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder={copy.emailPlaceholder} type="email" maxLength={254} />
                         </div>
                         <label className="consent">
                             <input type="checkbox" checked={phoneConsent} onChange={(event) => setPhoneConsent(event.target.checked)} />
                             <span>{copy.phoneConsentBefore} <button className="text-link" type="button" onClick={() => setLegalType('terms')}>{copy.termsOfUse}</button> {copy.phoneConsentBetween} <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>{copy.privacyPolicy}</button>. {copy.phoneConsentAfter}</span>
                         </label>
-                        <button className="primary full-width auth-action" type="button" disabled={!phoneConsent || authBusy} onClick={handleSendOtp}>
+                        <button className="primary full-width auth-action" type="button" disabled={!phoneConsent || authBusy || !phone.trim() || !profileName.trim()} onClick={handleLogin}>
                             {authBusy ? copy.pleaseWait : copy.acceptSendOtp}
                         </button>
-                        {showOtpBox && (
-                            <div>
-                                <div className="field"><label htmlFor="otp">{copy.enterOtp}</label><input id="otp" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="123456" inputMode="numeric" /></div>
-                                {!showProfileBox && (
-                                    <button className="primary full-width auth-action" type="button" disabled={authBusy} onClick={handleVerifyOtp}>{authBusy ? copy.verifying : copy.verifyOtp}</button>
-                                )}
-                                {showProfileBox && (
-                                    <div className="profile-step">
-                                        <h3>{copy.completeProfile}</h3>
-                                        <p className="sub">{copy.profileSub}</p>
-                                        <div className="field"><label htmlFor="profileName">{copy.name} <span aria-hidden="true">*</span></label><input id="profileName" value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder={copy.namePlaceholder} maxLength={150} required /></div>
-                                        <div className="field"><label htmlFor="profileEmail">{copy.email} <span className="optional-label">{copy.optional}</span></label><input id="profileEmail" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder={copy.emailPlaceholder} type="email" maxLength={254} /></div>
-                                        <button className="primary full-width auth-action" type="button" disabled={authBusy || !profileName.trim()} onClick={handleVerifyOtp}>{authBusy ? copy.saving : copy.saveContinue}</button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <div className="demo-note">{copy.demoOtp} <b>123456</b>.</div>
                     </div>
                 </section>
 
