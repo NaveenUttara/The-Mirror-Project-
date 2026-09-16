@@ -2,6 +2,15 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import {
+    formatMessage,
+    getStoredLanguage,
+    LANGUAGE_STORAGE_KEY,
+    t,
+    translateSeverity,
+    translateStatus,
+    type Language,
+} from './i18n';
 import './mirror.css';
 
 type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
@@ -39,7 +48,7 @@ const severityColor = (severity: PublicIssue['severity']) => ({
     critical: '#dc2626',
 }[severity]);
 
-function ReportPhoto({ photoUrl, token, reportId }: { photoUrl: string; token: string; reportId: string }) {
+function ReportPhoto({ photoUrl, token, reportId, loadingLabel }: { photoUrl: string; token: string; reportId: string; loadingLabel: string }) {
     const [source, setSource] = useState('');
 
     useEffect(() => {
@@ -71,7 +80,7 @@ function ReportPhoto({ photoUrl, token, reportId }: { photoUrl: string; token: s
 
     return source
         ? <Image className="report-photo" src={source} alt={`Pothole evidence for report ${reportId}`} width={88} height={68} unoptimized />
-        : <div className="report-photo report-photo-loading" aria-label="Loading report photograph">Loading photo…</div>;
+        : <div className="report-photo report-photo-loading" aria-label={loadingLabel}>{loadingLabel}</div>;
 }
 
 export default function Home() {
@@ -108,7 +117,9 @@ export default function Home() {
     const [legalType, setLegalType] = useState<LegalType | null>(null);
     const [toastMessage, setToastMessage] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
+    const [language, setLanguage] = useState<Language>(() => getStoredLanguage());
     const photoInputRef = useRef<HTMLInputElement>(null);
+    const copy = t(language);
 
     const showToast = (message: string) => {
         setToastMessage(message);
@@ -133,14 +144,14 @@ export default function Home() {
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showToast(data.error || 'Could not load your reports');
+                showToast(data.error || copy.toasts.loadReportsFailed);
                 return;
             }
             setReports(data.reports || []);
             setUserName(data.user?.name || 'Citizen');
         } catch (error) {
             console.error(error);
-            showToast('Network error while loading reports');
+            showToast(copy.toasts.networkReports);
         } finally {
             setReportsBusy(false);
         }
@@ -149,11 +160,16 @@ export default function Home() {
     const openDashboard = () => {
         if (!authToken) {
             showPage('login');
-            showToast('Please sign in to view your reports');
+            showToast(copy.toasts.signInRequired);
             return;
         }
         showPage('dashboard');
         void loadReports();
+    };
+
+    const openPublicImpact = () => {
+        showPage('impact');
+        void loadPublicImpact();
     };
 
     const loadPublicImpact = async () => {
@@ -176,13 +192,24 @@ export default function Home() {
         void loadPublicImpact();
     }, []);
 
+    useEffect(() => {
+        document.documentElement.lang = language === 'kn' ? 'kn' : 'en';
+    }, [language]);
+
+    const toggleLanguage = () => {
+        const next: Language = language === 'en' ? 'kn' : 'en';
+        setLanguage(next);
+        window.localStorage.setItem(LANGUAGE_STORAGE_KEY, next);
+        showToast(t(next).toasts[next === 'kn' ? 'languageSwitchedKn' : 'languageSwitchedEn']);
+    };
+
     const handleSendOtp = async () => {
         if (!phoneConsent) {
-            showToast('Please accept the terms and consent first');
+            showToast(copy.toasts.acceptTerms);
             return;
         }
         if (phone.trim().length < 10) {
-            showToast('Please enter a valid mobile number');
+            showToast(copy.toasts.invalidPhone);
             return;
         }
 
@@ -195,16 +222,16 @@ export default function Home() {
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showToast(data.error || 'Failed to send OTP');
+                showToast(data.error || copy.toasts.otpFailed);
                 return;
             }
             setShowProfileBox(false);
             setOtpSession(typeof data.otpSession === 'string' ? data.otpSession : '');
             setShowOtpBox(true);
-            showToast(`OTP sent${data.debugOtp ? `. Temporary OTP: ${data.debugOtp}` : ''}`);
+            showToast(`${copy.toasts.otpSent}${data.debugOtp ? `. ${copy.toasts.tempOtp} ${data.debugOtp}` : ''}`);
         } catch (error) {
             console.error(error);
-            showToast('Network error while requesting OTP');
+            showToast(copy.toasts.networkOtp);
         } finally {
             setAuthBusy(false);
         }
@@ -212,11 +239,11 @@ export default function Home() {
 
     const handleVerifyOtp = async () => {
         if (!otp.trim()) {
-            showToast('Please enter the OTP');
+            showToast(copy.toasts.enterOtp);
             return;
         }
         if (showProfileBox && !profileName.trim()) {
-            showToast('Please enter your name');
+            showToast(copy.toasts.enterName);
             return;
         }
 
@@ -249,12 +276,12 @@ export default function Home() {
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showToast(data.error || 'Incorrect OTP');
+                showToast(data.error || copy.toasts.incorrectOtp);
                 return;
             }
             if (data.profileRequired) {
                 setShowProfileBox(true);
-                showToast('OTP verified. Please enter your name to continue.');
+                showToast(copy.toasts.otpVerifiedProfile);
                 return;
             }
             window.localStorage.setItem('token', data.token);
@@ -266,10 +293,10 @@ export default function Home() {
             setUserName(data.user?.name || 'Citizen');
             await loadReports(data.token);
             showPage('dashboard');
-            showToast(`Welcome, ${data.user?.name || 'Citizen'}`);
+            showToast(`${copy.toasts.welcome} ${data.user?.name || 'Citizen'}`);
         } catch (error) {
             console.error(error);
-            showToast('Network error during verification');
+            showToast(copy.toasts.networkVerify);
         } finally {
             setAuthBusy(false);
         }
@@ -278,12 +305,12 @@ export default function Home() {
     const captureLocation = () => {
         if (!window.isSecureContext) {
             setLocationPermissionState('unavailable');
-            showToast('Live location requires HTTPS. Open this application using a secure https:// address.');
+            showToast(copy.toasts.httpsLocation);
             return;
         }
         if (!navigator.geolocation) {
             setLocationPermissionState('unavailable');
-            showToast('Location is not supported in this browser. The report cannot be submitted.');
+            showToast(copy.toasts.locationUnsupported);
             return;
         }
 
@@ -298,9 +325,9 @@ export default function Home() {
                 setLocationPermissionState('granted');
                 setLocationBusy(false);
                 if (position.coords.accuracy > 100) {
-                    showToast('GPS accuracy is too low. Move outdoors and capture the location again.');
+                    showToast(copy.toasts.gpsLow);
                 } else {
-                    showToast('Current location captured within 100-metre GPS accuracy');
+                    showToast(copy.toasts.locationCaptured);
                 }
             },
             (error) => {
@@ -311,11 +338,11 @@ export default function Home() {
                 setLocationPermissionState(error.code === 1 ? 'denied' : 'idle');
                 setLocationBusy(false);
                 if (error.code === 1) {
-                    showToast('Location permission was denied. Allow location for this site in Chrome settings.');
+                    showToast(copy.toasts.locationDenied);
                 } else if (error.code === 2) {
-                    showToast('Your current location is unavailable. Turn on GPS and try again outdoors.');
+                    showToast(copy.toasts.locationUnavailable);
                 } else {
-                    showToast('Location capture timed out. Move outdoors and try again.');
+                    showToast(copy.toasts.locationTimeout);
                 }
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
@@ -336,29 +363,29 @@ export default function Home() {
         }
 
         setPhotoCapturedAt(new Date().toISOString());
-        showToast('Photo captured. Now capture the current location.');
+        showToast(copy.toasts.photoCaptured);
     };
 
     const submitReport = async () => {
         if (!authToken) {
             showPage('login');
-            showToast('Please sign in before submitting a report');
+            showToast(copy.toasts.signInSubmit);
             return;
         }
         if (!photoConsent) {
-            showToast('Please accept the photo and location consent before submitting');
+            showToast(copy.toasts.photoConsentRequired);
             return;
         }
         if (!photoFile) {
-            showToast('Please select a pothole photograph');
+            showToast(copy.toasts.photoRequired);
             return;
         }
         if (!latitude || !longitude) {
-            showToast('Current GPS location has not been captured');
+            showToast(copy.toasts.gpsNotCaptured);
             return;
         }
         if (locationAccuracy === null || locationAccuracy > 100) {
-            showToast('GPS accuracy must be within 100 metres. Take the photo again outdoors.');
+            showToast(copy.toasts.gpsAccuracyRequired);
             return;
         }
 
@@ -381,7 +408,7 @@ export default function Home() {
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showToast(data.error || 'Could not submit the report');
+                showToast(data.error || copy.toasts.submitFailed);
                 return;
             }
 
@@ -401,16 +428,16 @@ export default function Home() {
             }
             await loadReports();
             showPage('success');
-            showToast(`Report created: ${data.reportId}`);
+            showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
         } catch (error) {
             console.error(error);
-            showToast('Network error while submitting the report');
+            showToast(copy.toasts.networkSubmit);
         } finally {
             setReportBusy(false);
         }
     };
 
-    const statusLabel = (status: string) => status.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const severityOptions = ['low', 'medium', 'high', 'critical'] as const;
     const underVerificationCount = reports.filter((report) => ['reported', 'verified', 'assigned'].includes(report.status)).length;
     const inProgressCount = reports.filter((report) => ['in_progress', 'repaired', 'reopened', 'escalated'].includes(report.status)).length;
     const closedCount = reports.filter((report) => report.status === 'closed').length;
@@ -424,10 +451,27 @@ export default function Home() {
     const maxLongitude = issueLongitudes.length ? Math.max(...issueLongitudes) : 0;
     const latitudeRange = maxLatitude - minLatitude;
     const longitudeRange = maxLongitude - minLongitude;
-    const pinPosition = (issue: PublicIssue) => ({
-        left: `${latitudeRange ? 12 + ((issue.latitude - minLatitude) / latitudeRange) * 76 : 50}%`,
-        top: `${longitudeRange ? 88 - ((issue.longitude - minLongitude) / longitudeRange) * 76 : 50}%`,
-    });
+
+    const hashOffset = (value: string) => {
+        let hash = 0;
+        for (let index = 0; index < value.length; index += 1) {
+            hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+        }
+        return ((hash % 7) - 3) * 1.4;
+    };
+
+    const pinPosition = (issue: PublicIssue) => {
+        const duplicateCount = publicIssues.filter(
+            (candidate) => candidate.latitude === issue.latitude && candidate.longitude === issue.longitude,
+        ).length;
+        const jitterX = duplicateCount > 1 ? hashOffset(issue.id) : 0;
+        const jitterY = duplicateCount > 1 ? hashOffset(`${issue.id}:y`) : 0;
+
+        return {
+            left: `${latitudeRange ? 12 + ((issue.latitude - minLatitude) / latitudeRange) * 76 + jitterX : 50 + jitterX}%`,
+            top: `${longitudeRange ? 88 - ((issue.longitude - minLongitude) / longitudeRange) * 76 + jitterY : 50 + jitterY}%`,
+        };
+    };
 
     const pageClass = (page: PageId) => `page${currentPage === page ? ' active' : ''}`;
 
@@ -436,13 +480,13 @@ export default function Home() {
             <header className="topbar">
                 <button className="brand brand-button" type="button" onClick={() => showPage('home')}>
                     <span className="brand-mark">◒</span>
-                    <span><strong>The Mirror Project</strong><small>Safer roads for India</small></span>
+                    <span><strong>{copy.brandTitle}</strong><small>{copy.brandSubtitle}</small></span>
                 </button>
                 <nav className="nav" aria-label="Primary navigation">
-                    <button type="button" onClick={() => showPage('home')}>Home</button>
-                    <button type="button" onClick={openDashboard}>My Reports</button>
-                    <button type="button" onClick={() => showPage('impact')}>Public Impact</button>
-                    <button className="lang" type="button" onClick={() => showToast('Kannada interface is ready for localisation content')}>ಕನ್ನಡ / EN</button>
+                    <button type="button" onClick={() => showPage('home')}>{copy.navHome}</button>
+                    <button type="button" onClick={openDashboard}>{copy.navReports}</button>
+                    <button type="button" onClick={openPublicImpact}>{copy.navImpact}</button>
+                    <button className="lang" type="button" onClick={toggleLanguage}>{copy.langToggle}</button>
                 </nav>
             </header>
 
@@ -450,111 +494,104 @@ export default function Home() {
                 <section className={pageClass('home')}>
                     <div className="hero">
                         <div className="hero-copy">
-                            <div className="eyebrow">India pothole accountability</div>
-                            <h1>See it.<br />Report it.<br /><span style={{ color: 'var(--green)' }}>Fix it.</span></h1>
-                            <p>Help make Karnataka&apos;s roads safer. Report dangerous potholes with a photograph and location, then track the action all the way to citizen verification.</p>
+                            <div className="eyebrow">{copy.heroEyebrow}</div>
+                            <h1>{copy.heroTitleLine1}<br />{copy.heroTitleLine2}<br /><span style={{ color: 'var(--green)' }}>{copy.heroTitleLine3}</span></h1>
+                            <p>{copy.heroBody}</p>
                             <div className="actions">
-                                <button className="primary" type="button" onClick={() => showPage('login')}>Report a pothole</button>
-                                <button className="secondary" type="button" onClick={openDashboard}>Track my report</button>
+                                <button className="primary" type="button" onClick={() => showPage('login')}>{copy.reportPothole}</button>
+                                <button className="secondary" type="button" onClick={openDashboard}>{copy.trackReport}</button>
                             </div>
                         </div>
                         <div className="hero-card">
-                            <h3>Live pothole map</h3>
-                            <div className="map hero-map" aria-label="Map of reported pothole locations">
-                                {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${statusLabel(issue.severity)} severity · ${statusLabel(issue.status)}`} aria-label={`${statusLabel(issue.severity)} severity issue, ${statusLabel(issue.status)}`} />)}
-                                {publicIssues.length === 0 && <p className="map-empty hero-map-empty">{publicImpact ? 'No potholes publicly shown yet.' : 'Loading reported potholes…'}</p>}
+                            <h3>{copy.liveMapTitle}</h3>
+                            <div className="map hero-map" aria-label={copy.liveMapTitle}>
+                                {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${translateSeverity(language, issue.severity)} · ${translateStatus(language, issue.status)}`} aria-label={`${translateSeverity(language, issue.severity)}, ${translateStatus(language, issue.status)}`} />)}
+                                {publicIssues.length === 0 && <p className="map-empty hero-map-empty">{publicImpact ? copy.mapEmpty : copy.mapLoading}</p>}
                             </div>
-                            <div className="map-legend hero-map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />Low</span><span><i className="legend-dot medium" />Medium</span><span><i className="legend-dot high" />High</span><span><i className="legend-dot critical" />Critical</span></div>
-                            {latestReport && <p className="hero-map-note">Your latest report: <strong>{statusLabel(latestReport.status)}</strong></p>}
+                            <div className="map-legend hero-map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />{copy.severity.low}</span><span><i className="legend-dot medium" />{copy.severity.medium}</span><span><i className="legend-dot high" />{copy.severity.high}</span><span><i className="legend-dot critical" />{copy.severity.critical}</span></div>
+                            {latestReport && <p className="hero-map-note">{copy.latestReport} <strong>{translateStatus(language, latestReport.status)}</strong></p>}
                         </div>
                     </div>
                     <div className="section">
-                        <h2>How it works</h2>
-                        <p className="sub">A simple 1–2 minute flow for citizens.</p>
+                        <h2>{copy.howItWorks}</h2>
+                        <p className="sub">{copy.howItWorksSub}</p>
                         <div className="steps">
-                            {[
-                                ['1', 'See', 'Find a dangerous pothole.'],
-                                ['2', 'Capture', 'Take a clear photograph.'],
-                                ['3', 'Locate', 'Share the GPS location.'],
-                                ['4', 'Report', 'Add severity and context.'],
-                                ['5', 'Action', 'Authority processes it.'],
-                                ['6', 'Verify', 'You confirm the result.'],
-                            ].map(([number, title, text]) => (
-                                <div className="step" key={number}><b>{number}</b><h4>{title}</h4><p>{text}</p></div>
+                            {copy.steps.map((step, index) => (
+                                <div className="step" key={step.title}><b>{index + 1}</b><h4>{step.title}</h4><p>{step.text}</p></div>
                             ))}
                         </div>
                     </div>
                     <div className="section">
-                        <h2>Current Karnataka impact</h2>
+                        <h2>{copy.impactSectionTitle}</h2>
                         <div className="impact">
-                            <div className="card"><strong>{publicImpact?.totalReports ?? '—'}</strong><span>Reports received</span></div>
-                            <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>Under review</span></div>
-                            <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>Work in progress</span></div>
-                            <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>Repaired</span></div>
+                            <div className="card"><strong>{publicImpact?.totalReports ?? '—'}</strong><span>{copy.reportsReceived}</span></div>
+                            <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>{copy.underReview}</span></div>
+                            <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>{copy.workInProgress}</span></div>
+                            <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>{copy.repaired}</span></div>
                         </div>
                     </div>
                 </section>
 
                 <section className={pageClass('login')}>
                     <div className="panel">
-                        <div className="eyebrow">Citizen access</div>
-                        <h2>Sign in with OTP</h2>
-                        <p className="sub">No password needed. Your mobile number is your identity.</p>
+                        <div className="eyebrow">{copy.citizenAccess}</div>
+                        <h2>{copy.signInTitle}</h2>
+                        <p className="sub">{copy.signInSub}</p>
                         <div className="field">
-                            <label htmlFor="phone">Mobile number</label>
-                            <input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" />
+                            <label htmlFor="phone">{copy.mobileNumber}</label>
+                            <input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={copy.phonePlaceholder} />
                         </div>
                         <label className="consent">
                             <input type="checkbox" checked={phoneConsent} onChange={(event) => setPhoneConsent(event.target.checked)} />
-                            <span>I agree to The Mirror Project <button className="text-link" type="button" onClick={() => setLegalType('terms')}>Terms of Use</button> and <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>Privacy Policy</button>. I consent to the collection and use of my phone number for OTP authentication, account access, service notifications and report updates.</span>
+                            <span>{copy.phoneConsentBefore} <button className="text-link" type="button" onClick={() => setLegalType('terms')}>{copy.termsOfUse}</button> {copy.phoneConsentBetween} <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>{copy.privacyPolicy}</button>. {copy.phoneConsentAfter}</span>
                         </label>
                         <button className="primary full-width auth-action" type="button" disabled={!phoneConsent || authBusy} onClick={handleSendOtp}>
-                            {authBusy ? 'Please wait…' : 'Accept and send OTP'}
+                            {authBusy ? copy.pleaseWait : copy.acceptSendOtp}
                         </button>
                         {showOtpBox && (
                             <div>
-                                <div className="field"><label htmlFor="otp">Enter 6-digit OTP</label><input id="otp" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="123456" inputMode="numeric" /></div>
+                                <div className="field"><label htmlFor="otp">{copy.enterOtp}</label><input id="otp" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="123456" inputMode="numeric" /></div>
                                 {!showProfileBox && (
-                                    <button className="primary full-width auth-action" type="button" disabled={authBusy} onClick={handleVerifyOtp}>{authBusy ? 'Verifying…' : 'Verify OTP'}</button>
+                                    <button className="primary full-width auth-action" type="button" disabled={authBusy} onClick={handleVerifyOtp}>{authBusy ? copy.verifying : copy.verifyOtp}</button>
                                 )}
                                 {showProfileBox && (
                                     <div className="profile-step">
-                                        <h3>Complete your profile</h3>
-                                        <p className="sub">Your name will be used in your dashboard greeting and reports.</p>
-                                        <div className="field"><label htmlFor="profileName">Name <span aria-hidden="true">*</span></label><input id="profileName" value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder="Enter your full name" maxLength={150} required /></div>
-                                        <div className="field"><label htmlFor="profileEmail">Email <span className="optional-label">(optional)</span></label><input id="profileEmail" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder="you@example.com" type="email" maxLength={254} /></div>
-                                        <button className="primary full-width auth-action" type="button" disabled={authBusy || !profileName.trim()} onClick={handleVerifyOtp}>{authBusy ? 'Saving…' : 'Save and continue'}</button>
+                                        <h3>{copy.completeProfile}</h3>
+                                        <p className="sub">{copy.profileSub}</p>
+                                        <div className="field"><label htmlFor="profileName">{copy.name} <span aria-hidden="true">*</span></label><input id="profileName" value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder={copy.namePlaceholder} maxLength={150} required /></div>
+                                        <div className="field"><label htmlFor="profileEmail">{copy.email} <span className="optional-label">{copy.optional}</span></label><input id="profileEmail" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder={copy.emailPlaceholder} type="email" maxLength={254} /></div>
+                                        <button className="primary full-width auth-action" type="button" disabled={authBusy || !profileName.trim()} onClick={handleVerifyOtp}>{authBusy ? copy.saving : copy.saveContinue}</button>
                                     </div>
                                 )}
                             </div>
                         )}
-                        <div className="demo-note">Until SMS is configured, the temporary OTP is <b>123456</b>.</div>
+                        <div className="demo-note">{copy.demoOtp} <b>123456</b>.</div>
                     </div>
                 </section>
 
                 <section className={pageClass('dashboard')}>
                     <div className="dash-head">
-                        <div><div className="eyebrow">Citizen dashboard</div><h2>Hi, {userName}</h2><p className="sub">Track every report from submission to closure.</p></div>
-                        <button className="primary" type="button" onClick={() => showPage('report')}>＋ Report a pothole</button>
+                        <div><div className="eyebrow">{copy.dashboardEyebrow}</div><h2>{copy.dashboardGreeting} {userName}</h2><p className="sub">{copy.dashboardSub}</p></div>
+                        <button className="primary" type="button" onClick={() => showPage('report')}>{copy.newReportButton}</button>
                     </div>
                     <div className="stat-grid">
-                        <div className="card"><strong>{reports.length}</strong><span>Reports submitted</span></div>
-                        <div className="card"><strong>{underVerificationCount}</strong><span>Under verification</span></div>
-                        <div className="card"><strong>{inProgressCount}</strong><span>In progress</span></div>
-                        <div className="card"><strong>{closedCount}</strong><span>Closed</span></div>
+                        <div className="card"><strong>{reports.length}</strong><span>{copy.reportsSubmitted}</span></div>
+                        <div className="card"><strong>{underVerificationCount}</strong><span>{copy.underVerification}</span></div>
+                        <div className="card"><strong>{inProgressCount}</strong><span>{copy.inProgress}</span></div>
+                        <div className="card"><strong>{closedCount}</strong><span>{copy.closed}</span></div>
                     </div>
                     <div className="section dashboard-reports">
-                        <h2>My recent reports</h2>
+                        <h2>{copy.recentReports}</h2>
                         <div className="reports">
-                            {reportsBusy && <div className="card empty-reports">Loading reports…</div>}
-                            {!reportsBusy && reports.length === 0 && <div className="card empty-reports">No reports submitted yet.</div>}
+                            {reportsBusy && <div className="card empty-reports">{copy.loadingReports}</div>}
+                            {!reportsBusy && reports.length === 0 && <div className="card empty-reports">{copy.noReports}</div>}
                             {!reportsBusy && reports.map((report) => (
                                 <div className="report-row" key={report.reportId}>
                                     {report.photoUrl
-                                        ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} />
-                                        : <div className="report-photo report-photo-loading">No photo</div>}
-                                    <div><h4>{report.reportId}</h4><p>{Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)} · {new Date(report.submittedAt).toLocaleDateString('en-IN')}</p></div>
-                                    <div className="report-row-status"><span className={`badge ${report.status === 'closed' ? 'green' : 'orange'}`}>{statusLabel(report.status)}</span><br /><small className="muted-text">{report.potholePublicId} · {statusLabel(report.severity)} severity</small></div>
+                                        ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} loadingLabel={copy.loadingPhoto} />
+                                        : <div className="report-photo report-photo-loading">{copy.noPhoto}</div>}
+                                    <div><h4>{report.reportId}</h4><p>{Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)} · {new Date(report.submittedAt).toLocaleDateString(language === 'kn' ? 'kn-IN' : 'en-IN')}</p></div>
+                                    <div className="report-row-status"><span className={`badge ${report.status === 'closed' ? 'green' : 'orange'}`}>{translateStatus(language, report.status)}</span><br /><small className="muted-text">{report.potholePublicId} · {translateSeverity(language, report.severity)}</small></div>
                                 </div>
                             ))}
                         </div>
@@ -563,79 +600,98 @@ export default function Home() {
 
                 <section className={pageClass('report')}>
                     <div className="panel">
-                        <div className="eyebrow">New report</div><h2>Report a pothole</h2><p className="sub">Add evidence, location and a quick description.</p>
+                        <div className="eyebrow">{copy.newReportEyebrow}</div><h2>{copy.newReportTitle}</h2><p className="sub">{copy.newReportSub}</p>
                         <div className="field">
-                            <label>1 · Photograph</label>
-                            <label className="consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /><span>I consent to The Mirror Project collecting and using this photograph, GPS location and description to verify, route and track this road-safety report. My personal contact details will not be publicly displayed. <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>Learn more</button></span></label>
+                            <label>{copy.stepPhoto}</label>
+                            <label className="consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /><span>{copy.photoConsentBefore} {copy.photoConsentAfter} <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>{copy.learnMore}</button></span></label>
                             <input ref={photoInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
-                            <div className="upload"><button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoInputRef.current?.click()}>◎ Take photo</button></div>
-                            <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : 'Accept the consent, then take a current photo · JPEG, PNG or WebP · maximum 5 MB'}</small>
+                            <div className="upload"><button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoInputRef.current?.click()}>{copy.takePhoto}</button></div>
+                            <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : copy.photoHint}</small>
                         </div>
                         <div className="field">
-                            <label>2 · Current location</label>
+                            <label>{copy.stepLocation}</label>
                             <button className="secondary full-width" type="button" disabled={!photoConsent || !photoFile || locationBusy} onClick={captureLocation}>
-                                {locationBusy ? 'Capturing current location…' : locationPermissionState === 'granted' ? 'Capture current location again' : 'Capture current location'}
+                                {locationBusy ? copy.capturingLocation : locationPermissionState === 'granted' ? copy.captureLocationAgain : copy.captureLocation}
                             </button>
                             <div className="location-lock card">
                                 {locationBusy
-                                    ? 'Waiting for a precise GPS location…'
+                                    ? copy.waitingGps
                                     : locationPermissionState === 'unavailable'
-                                        ? 'Current location requires a secure HTTPS connection.'
+                                        ? copy.httpsRequired
                                         : locationPermissionState === 'denied'
-                                            ? 'Location is blocked. Allow it in Chrome site settings, then try again.'
+                                            ? copy.locationBlocked
                                             : latitude && longitude
-                                                ? <><strong>{(locationAccuracy || 0) <= 100 ? 'Location verified' : 'Location accuracy is too low'}</strong><span>{latitude}, {longitude}</span><small>Accuracy: approximately {Math.round(locationAccuracy || 0)} metres · required: 100 metres or better</small></>
+                                                ? <><strong>{(locationAccuracy || 0) <= 100 ? copy.locationVerified : copy.locationTooLow}</strong><span>{latitude}, {longitude}</span><small>{formatMessage(copy.accuracyRequired, { accuracy: Math.round(locationAccuracy || 0) })}</small></>
                                                 : photoFile
-                                                    ? 'Photo ready. Capture the current GPS location within two minutes.'
-                                                    : 'Take a photo first, then capture the current location.'}
+                                                    ? copy.photoReadyCapture
+                                                    : copy.takePhotoFirst}
                             </div>
                         </div>
                         <div className="field">
-                            <label>3 · How dangerous is this pothole?</label>
-                            <div className="severity">{['Low', 'Medium', 'High', 'Critical'].map((value) => <button className={severity === value ? 'selected' : ''} type="button" key={value} onClick={() => setSeverity(value)}>{value}</button>)}</div>
+                            <label>{copy.stepSeverity}</label>
+                            <div className="severity">{severityOptions.map((value) => {
+                                const apiValue = `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+                                return <button className={severity === apiValue ? 'selected' : ''} type="button" key={value} onClick={() => setSeverity(apiValue)}>{copy.severity[value]}</button>;
+                            })}</div>
                         </div>
-                        <div className="field"><label htmlFor="description">4 · Describe the problem</label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} placeholder="Large pothole near the bus stop. Dangerous for two-wheelers." /></div>
-                        <button className="primary full-width report-submit" type="button" disabled={reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100} onClick={submitReport}>{reportBusy ? 'Submitting report…' : 'Review and submit report'}</button>
+                        <div className="field"><label htmlFor="description">{copy.stepDescription}</label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} placeholder={copy.descriptionPlaceholder} /></div>
+                        <button className="primary full-width report-submit" type="button" disabled={reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100} onClick={submitReport}>{reportBusy ? copy.submittingReport : copy.reviewSubmit}</button>
                     </div>
                 </section>
 
                 <section className={pageClass('success')}>
                     <div className="panel success-panel">
-                        <div className="success-icon">✓</div><div className="eyebrow">Report received</div><h2>Report submitted successfully</h2><p className="sub">Your pothole report has been recorded and can now be tracked.</p>
-                        <div className="card report-id-card"><div className="muted-text report-id-label">Your report ID</div><strong className="report-id">{latestReportId}</strong></div>
-                        <div className="actions centered-actions"><button className="primary" type="button" onClick={openDashboard}>Track report</button><button className="secondary" type="button" onClick={openDashboard}>Back to dashboard</button></div>
+                        <div className="success-icon">✓</div><div className="eyebrow">{copy.successEyebrow}</div><h2>{copy.successTitle}</h2><p className="sub">{copy.successSub}</p>
+                        <div className="card report-id-card"><div className="muted-text report-id-label">{copy.yourReportId}</div><strong className="report-id">{latestReportId}</strong></div>
+                        <div className="actions centered-actions"><button className="primary" type="button" onClick={openDashboard}>{copy.trackReportBtn}</button><button className="secondary" type="button" onClick={openDashboard}>{copy.backDashboard}</button></div>
                     </div>
                 </section>
 
                 <section className={pageClass('impact')}>
-                    <div className="eyebrow">Public transparency</div><h2>Karnataka impact dashboard</h2><p className="sub">Aggregated statistics only. No private citizen information is exposed.</p>
+                    <div className="eyebrow">{copy.impactEyebrow}</div><h2>{copy.impactTitle}</h2><p className="sub">{copy.impactSub}</p>
                     <div className="impact impact-top">
-                        <div className="card"><strong>{publicImpact?.totalReports ?? '—'}</strong><span>Reports received</span></div>
-                        <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>Under review</span></div>
-                        <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>Work in progress</span></div>
-                        <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>Repaired</span></div>
+                        <div className="card"><strong>{publicImpact?.totalReports ?? '—'}</strong><span>{copy.reportsReceived}</span></div>
+                        <div className="card"><strong>{publicImpact?.underReview ?? '—'}</strong><span>{copy.underReview}</span></div>
+                        <div className="card"><strong>{publicImpact?.inProgress ?? '—'}</strong><span>{copy.workInProgress}</span></div>
+                        <div className="card"><strong>{publicImpact?.repaired ?? '—'}</strong><span>{copy.repaired}</span></div>
                     </div>
                     <div className="card public-map-card">
-                        <div className="map-heading"><div><h3>Reported issue locations</h3><p>Approximate locations only, rounded to protect reporter privacy.</p></div><span>{publicIssues.length} visible</span></div>
-                        <div className="map public-map" aria-label="Map of reported pothole locations">
-                            {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${statusLabel(issue.severity)} severity · ${statusLabel(issue.status)}`} aria-label={`${statusLabel(issue.severity)} severity issue, ${statusLabel(issue.status)}`} />)}
-                            {publicIssues.length === 0 && <p className="map-empty">No public issue locations yet.</p>}
+                        <div className="map-heading"><div><h3>{copy.mapHeadingTitle}</h3><p>{copy.mapHeadingSub}</p></div><span>{formatMessage(copy.visibleCount, { count: publicIssues.length })}</span></div>
+                        <div className="map public-map" aria-label={copy.mapHeadingTitle}>
+                            {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${translateSeverity(language, issue.severity)} · ${translateStatus(language, issue.status)}`} aria-label={`${translateSeverity(language, issue.severity)}, ${translateStatus(language, issue.status)}`} />)}
+                            {publicIssues.length === 0 && <p className="map-empty">{copy.publicMapEmpty}</p>}
                         </div>
-                        <div className="map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />Low</span><span><i className="legend-dot medium" />Medium</span><span><i className="legend-dot high" />High</span><span><i className="legend-dot critical" />Critical</span></div>
+                        <div className="map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />{copy.severity.low}</span><span><i className="legend-dot medium" />{copy.severity.medium}</span><span><i className="legend-dot high" />{copy.severity.high}</span><span><i className="legend-dot critical" />{copy.severity.critical}</span></div>
+                    </div>
+                    <div className="section public-issue-list">
+                        <h3>{copy.issueListTitle}</h3>
+                        <p className="sub">{copy.issueListSub}</p>
+                        <div className="issue-list">
+                            {publicIssues.length === 0 && <div className="card issue-row empty-issue-list">{copy.publicMapEmpty}</div>}
+                            {publicIssues.map((issue) => (
+                                <div className="card issue-row" key={issue.id}>
+                                    <div className="issue-row-main">
+                                        <strong>{issue.id}</strong>
+                                        <span className={`badge ${issue.status === 'closed' ? 'green' : 'orange'}`}>{translateStatus(language, issue.status)}</span>
+                                    </div>
+                                    <p>{translateSeverity(language, issue.severity)} · {copy.issueLocation}: {issue.latitude.toFixed(4)}, {issue.longitude.toFixed(4)}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </section>
 
-                <footer className="footer"><span>© 2026 The Mirror Project · Karnataka pilot prototype</span><span><button className="footer-link" type="button" onClick={() => setLegalType('privacy')}>Privacy</button> · <button className="footer-link" type="button" onClick={() => setLegalType('terms')}>Terms</button> · Accessibility</span></footer>
+                <footer className="footer"><span>{copy.footer}</span><span><button className="footer-link" type="button" onClick={() => setLegalType('privacy')}>{copy.privacy}</button> · <button className="footer-link" type="button" onClick={() => setLegalType('terms')}>{copy.terms}</button> · {copy.accessibility}</span></footer>
             </main>
 
             {toastVisible && <div className="toast visible-toast" role="status">{toastMessage}</div>}
             {legalType && (
                 <div className="legal-overlay" role="presentation" onClick={() => setLegalType(null)}>
                     <div className="panel legal-panel" role="dialog" aria-modal="true" aria-labelledby="legal-title" onClick={(event) => event.stopPropagation()}>
-                        <button className="legal-close" type="button" aria-label="Close" onClick={() => setLegalType(null)}>×</button>
-                        <div className="eyebrow">{legalType === 'terms' ? 'Terms of Use' : 'Privacy Policy'}</div><h2 id="legal-title">{legalType === 'terms' ? 'Terms of Use' : 'Privacy Policy'}</h2>
-                        {legalType === 'terms' ? <><p>By using The Mirror Project, you agree to submit truthful road-safety information and use the service lawfully. Reports may be reviewed, routed to the responsible authority and retained as necessary for accountability, safety and dispute resolution.</p><p>Do not upload private, unlawful or unrelated content. Production terms should be reviewed and approved by a qualified legal adviser before launch.</p></> : <><p>The Mirror Project collects your name, mobile number and optional email to create and manage your account. Your phone number is used for OTP authentication and important service notifications.</p><p>When you submit a report, the project collects the photograph, GPS location, severity and description. This information is used to verify the issue, identify the responsible authority, coordinate repairs and maintain an accountability record.</p><p>Personal contact details are not displayed on the public map or public statistics dashboard. Production deployment should include retention periods, deletion requests, access controls and a legally reviewed privacy notice.</p></>}
-                        <button className="primary full-width legal-accept" type="button" onClick={() => setLegalType(null)}>I understand</button>
+                        <button className="legal-close" type="button" aria-label={copy.close} onClick={() => setLegalType(null)}>×</button>
+                        <div className="eyebrow">{legalType === 'terms' ? copy.legalTermsEyebrow : copy.legalPrivacyEyebrow}</div><h2 id="legal-title">{legalType === 'terms' ? copy.legalTermsEyebrow : copy.legalPrivacyEyebrow}</h2>
+                        {legalType === 'terms' ? <><p>{copy.legalTermsBody1}</p><p>{copy.legalTermsBody2}</p></> : <><p>{copy.legalPrivacyBody1}</p><p>{copy.legalPrivacyBody2}</p><p>{copy.legalPrivacyBody3}</p></>}
+                        <button className="primary full-width legal-accept" type="button" onClick={() => setLegalType(null)}>{copy.understand}</button>
                     </div>
                 </div>
             )}
