@@ -385,7 +385,7 @@ export default function Home() {
     };
 
     const severityOptions = ['low', 'medium', 'high', 'critical'] as const;
-    const underVerificationCount = reports.filter((report) => ['reported', 'verified', 'assigned'].includes(report.status)).length;
+    const underVerificationCount = reports.filter((report) => ['reported', 'submitted', 'under_verification', 'verified', 'assigned'].includes(report.status)).length;
     const inProgressCount = reports.filter((report) => ['in_progress', 'repaired', 'reopened', 'escalated'].includes(report.status)).length;
     const closedCount = reports.filter((report) => report.status === 'closed').length;
     const latestReport = reports[0];

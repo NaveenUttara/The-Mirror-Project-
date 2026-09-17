@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy"
 import { getDemoPublicImpactResponse } from "@/lib/demo-reports"
+import { getPostgresPublicImpact, isPostgresConfigured } from "@/lib/mirror-postgres"
 
 export async function GET() {
   const medusaUrl = getMedusaBackendUrl()
@@ -15,6 +16,14 @@ export async function GET() {
       }
     } catch (error) {
       console.error("[public-impact] Medusa request failed:", error)
+    }
+  }
+
+  if (isPostgresConfigured()) {
+    try {
+      return NextResponse.json(await getPostgresPublicImpact())
+    } catch (error) {
+      console.error("[public-impact] PostgreSQL request failed:", error)
     }
   }
 
