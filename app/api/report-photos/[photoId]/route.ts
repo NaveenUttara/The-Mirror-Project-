@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import oracledb from "oracledb";
 import { authenticateRequest } from "@/lib/auth";
+import { getDemoPhoto } from "@/lib/demo-store";
+import { hasOracleConfig } from "@/lib/demo-reports";
 import { getConnection } from "@/lib/db";
 import {
   isMissingR2Object,
@@ -8,6 +10,7 @@ import {
   loadReportPhoto,
 } from "@/lib/report-storage";
 import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy";
+import { shouldUseMedusaBackend } from "@/lib/token-kind";
 
 export const runtime = "nodejs";
 
@@ -24,18 +27,37 @@ export async function GET(
     const { photoId } = await context.params;
 
     const medusaUrl = getMedusaBackendUrl();
-    if (medusaUrl) {
+    if (medusaUrl && shouldUseMedusaBackend(request)) {
       const response = await fetch(`${medusaUrl}/mirror/report-photos/${encodeURIComponent(photoId)}`, {
         headers: { Authorization: request.headers.get("authorization") || "" },
         cache: "no-store",
       });
-      return forwardedResponse(response);
+      if (response.ok) {
+        return forwardedResponse(response);
+      }
     }
 
     const user = authenticateRequest(request);
 
+    const demoPhoto = getDemoPhoto(photoId, user.userId);
+    if (demoPhoto) {
+      return new Response(new Uint8Array(demoPhoto.bytes), {
+        headers: {
+          "Content-Type": demoPhoto.mimeType,
+          "Content-Length": String(demoPhoto.bytes.byteLength),
+          "Cache-Control": "private, no-store",
+          "Content-Disposition": `inline; filename="report-${photoId}"`,
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
+
     if (!/^\d+$/.test(photoId)) {
       return NextResponse.json({ error: "Invalid photograph identifier" }, { status: 400 });
+    }
+
+    if (!hasOracleConfig()) {
+      return NextResponse.json({ error: "Photograph not found" }, { status: 404 });
     }
 
     const connection = await getConnection();

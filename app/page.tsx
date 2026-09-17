@@ -420,6 +420,18 @@ export default function Home() {
     };
 
     const pageClass = (page: PageId) => `page${currentPage === page ? ' active' : ''}`;
+    const reportSubmitDisabled = reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100;
+    const submitBlockedReason = reportBusy || locationBusy
+        ? copy.submitBlockedBusy
+        : !photoConsent
+            ? copy.submitBlockedConsent
+            : !photoFile
+                ? copy.submitBlockedPhoto
+                : !latitude || !longitude
+                    ? copy.submitBlockedLocation
+                    : locationAccuracy === null || locationAccuracy > 100
+                        ? copy.submitBlockedAccuracy
+                        : '';
 
     return (
         <div className="app">
@@ -571,7 +583,8 @@ export default function Home() {
                             })}</div>
                         </div>
                         <div className="field"><label htmlFor="description">{copy.stepDescription}</label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} placeholder={copy.descriptionPlaceholder} /></div>
-                        <button className="primary full-width report-submit" type="button" disabled={reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100} onClick={submitReport}>{reportBusy ? copy.submittingReport : copy.reviewSubmit}</button>
+                        <button className="primary full-width report-submit" type="button" disabled={reportSubmitDisabled} onClick={submitReport}>{reportBusy ? copy.submittingReport : copy.reviewSubmit}</button>
+                        {reportSubmitDisabled && submitBlockedReason && <p className="submit-blocked-note">{submitBlockedReason}</p>}
                     </div>
                 </section>
 
