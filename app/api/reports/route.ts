@@ -3,18 +3,23 @@ import { NextResponse } from "next/server";
 import oracledb from "oracledb";
 import { authenticateRequest } from "@/lib/auth";
 import { getConnection } from "@/lib/db";
+import {
+  hasOracleConfig,
+  listDemoReports,
+  submitDemoReport,
+  validateReportSubmission,
+} from "@/lib/demo-reports";
 import { deleteReportPhoto, saveReportPhoto } from "@/lib/report-storage";
 import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy";
+import { shouldUseMedusaBackend } from "@/lib/token-kind";
 
 export const runtime = "nodejs";
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const PHOTO_EXTENSIONS: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
 };
-const SEVERITIES = new Set(["low", "medium", "high", "critical"]);
 
 type SequenceRow = {
   potholeId: number;
@@ -49,100 +54,42 @@ function apiError(error: unknown) {
   return NextResponse.json({ error: message }, { status: 500 });
 }
 
-function requiredText(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 export async function POST(request: Request) {
   let savedPhotoKey: string | undefined;
 
   try {
+    const formData = await request.formData();
     const medusaUrl = getMedusaBackendUrl();
-    if (medusaUrl) {
+
+    if (medusaUrl && shouldUseMedusaBackend(request)) {
       const response = await fetch(`${medusaUrl}/mirror/reports`, {
         method: "POST",
         headers: { Authorization: request.headers.get("authorization") || "" },
-        body: await request.formData(),
+        body: formData,
         cache: "no-store",
       });
-      return forwardedResponse(response);
+      if (response.ok) {
+        return forwardedResponse(response);
+      }
     }
 
     const user = authenticateRequest(request);
-    const formData = await request.formData();
-    const latitudeText = requiredText(formData, "latitude");
-    const longitudeText = requiredText(formData, "longitude");
-    const latitude = Number(latitudeText);
-    const longitude = Number(longitudeText);
-    const severity = requiredText(formData, "severity").toLowerCase();
-    const description = requiredText(formData, "description");
-    const photoCapturedAt = requiredText(formData, "photoCapturedAt");
-    const locationCapturedAt = requiredText(formData, "locationCapturedAt");
-    const locationAccuracy = Number(requiredText(formData, "locationAccuracy"));
-    const photoValue = formData.get("photo");
 
-    if (!latitudeText || !Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
-      return NextResponse.json({ error: "Enter a valid latitude" }, { status: 400 });
-    }
-    if (!longitudeText || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-      return NextResponse.json({ error: "Enter a valid longitude" }, { status: 400 });
-    }
-    if (!SEVERITIES.has(severity)) {
-      return NextResponse.json({ error: "Select a valid severity" }, { status: 400 });
-    }
-    if (description.length > 2000) {
-      return NextResponse.json(
-        { error: "Description must be 2000 characters or fewer" },
-        { status: 400 },
-      );
-    }
-    const photoCaptureTime = Date.parse(photoCapturedAt);
-    const locationCaptureTime = Date.parse(locationCapturedAt);
-    const now = Date.now();
-    if (
-      !Number.isFinite(photoCaptureTime)
-      || !Number.isFinite(locationCaptureTime)
-      || now - photoCaptureTime > 15 * 60 * 1000
-      || now - locationCaptureTime > 15 * 60 * 1000
-      || photoCaptureTime - now > 60 * 1000
-      || locationCaptureTime - now > 60 * 1000
-      || Math.abs(photoCaptureTime - locationCaptureTime) > 2 * 60 * 1000
-    ) {
-      return NextResponse.json(
-        { error: "Take a fresh photo and capture its location again" },
-        { status: 400 },
-      );
-    }
-    if (!Number.isFinite(locationAccuracy) || locationAccuracy <= 0 || locationAccuracy > 100) {
-      return NextResponse.json(
-        { error: "GPS accuracy must be within 100 metres" },
-        { status: 400 },
-      );
-    }
-    if (!(photoValue instanceof File) || photoValue.size === 0) {
-      return NextResponse.json({ error: "A pothole photograph is required" }, { status: 400 });
-    }
-    const extension = PHOTO_EXTENSIONS[photoValue.type];
-    if (!extension) {
-      return NextResponse.json(
-        { error: "Photograph must be a JPEG, PNG or WebP image" },
-        { status: 400 },
-      );
-    }
-    if (photoValue.size > MAX_PHOTO_BYTES) {
-      return NextResponse.json(
-        { error: "Photograph must be 5 MB or smaller" },
-        { status: 400 },
-      );
+    if (!hasOracleConfig()) {
+      return submitDemoReport(user, formData);
     }
 
-    const objectKey = `report-photos/${randomUUID()}${extension}`;
+    const validated = validateReportSubmission(formData);
+    if ("error" in validated) {
+      return NextResponse.json({ error: validated.error }, { status: 400 });
+    }
+
+    const objectKey = `report-photos/${randomUUID()}${PHOTO_EXTENSIONS[validated.photoValue.type]}`;
     savedPhotoKey = objectKey;
     await saveReportPhoto(
       objectKey,
-      new Uint8Array(await photoValue.arrayBuffer()),
-      photoValue.type,
+      new Uint8Array(await validated.photoValue.arrayBuffer()),
+      validated.photoValue.type,
     );
 
     const connection = await getConnection();
@@ -172,7 +119,13 @@ export async function POST(request: Request) {
            (id, public_id, latitude, longitude, severity, current_status)
          VALUES
            (:id, :publicId, :latitude, :longitude, :severity, 'reported')`,
-        { id: ids.potholeId, publicId: potholePublicId, latitude, longitude, severity },
+        {
+          id: ids.potholeId,
+          publicId: potholePublicId,
+          latitude: validated.latitude,
+          longitude: validated.longitude,
+          severity: validated.severity,
+        },
       );
 
       await connection.execute(
@@ -185,7 +138,7 @@ export async function POST(request: Request) {
           reportId: citizenReportId,
           potholeId: ids.potholeId,
           citizenId: user.userId,
-          description: description || null,
+          description: validated.description,
         },
       );
 
@@ -198,8 +151,8 @@ export async function POST(request: Request) {
           id: ids.photoId,
           reportId: ids.reportId,
           objectKey,
-          mimeType: photoValue.type,
-          fileSize: photoValue.size,
+          mimeType: validated.photoValue.type,
+          fileSize: validated.photoValue.size,
         },
       );
 
@@ -222,11 +175,9 @@ export async function POST(request: Request) {
           entityId: citizenReportId,
           details: JSON.stringify({
             potholePublicId,
-            latitude,
-            longitude,
-            locationAccuracyMetres: locationAccuracy,
-            photoCapturedAt,
-            locationCapturedAt,
+            latitude: validated.latitude,
+            longitude: validated.longitude,
+            locationAccuracyMetres: Number(formData.get("locationAccuracy")),
           }),
         },
       );
@@ -256,15 +207,22 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const medusaUrl = getMedusaBackendUrl();
-    if (medusaUrl) {
+    if (medusaUrl && shouldUseMedusaBackend(request)) {
       const response = await fetch(`${medusaUrl}/mirror/reports`, {
         headers: { Authorization: request.headers.get("authorization") || "" },
         cache: "no-store",
       });
-      return forwardedResponse(response);
+      if (response.ok) {
+        return forwardedResponse(response);
+      }
     }
 
     const user = authenticateRequest(request);
+
+    if (!hasOracleConfig()) {
+      return listDemoReports(user);
+    }
+
     const connection = await getConnection();
 
     try {

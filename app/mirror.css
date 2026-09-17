@@ -878,6 +878,17 @@
             margin-top: 20px
         }
 
+        .report-submit {
+            margin-top: 8px
+        }
+
+        .submit-blocked-note {
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600
+        }
+
         .success-panel {
             padding: 45px 28px;
             text-align: center
