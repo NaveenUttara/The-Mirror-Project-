@@ -11,6 +11,7 @@ import {
     translateStatus,
     type Language,
 } from './i18n';
+import ReportMap, { googleMapsUrl } from './ReportMap';
 import './mirror.css';
 
 type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
@@ -389,35 +390,29 @@ export default function Home() {
     const closedCount = reports.filter((report) => report.status === 'closed').length;
     const latestReport = reports[0];
     const publicIssues = publicImpact?.issues || [];
-    const issueLatitudes = publicIssues.map((issue) => issue.latitude);
-    const issueLongitudes = publicIssues.map((issue) => issue.longitude);
-    const minLatitude = issueLatitudes.length ? Math.min(...issueLatitudes) : 0;
-    const maxLatitude = issueLatitudes.length ? Math.max(...issueLatitudes) : 0;
-    const minLongitude = issueLongitudes.length ? Math.min(...issueLongitudes) : 0;
-    const maxLongitude = issueLongitudes.length ? Math.max(...issueLongitudes) : 0;
-    const latitudeRange = maxLatitude - minLatitude;
-    const longitudeRange = maxLongitude - minLongitude;
-
-    const hashOffset = (value: string) => {
-        let hash = 0;
-        for (let index = 0; index < value.length; index += 1) {
-            hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-        }
-        return ((hash % 7) - 3) * 1.4;
-    };
-
-    const pinPosition = (issue: PublicIssue) => {
-        const duplicateCount = publicIssues.filter(
-            (candidate) => candidate.latitude === issue.latitude && candidate.longitude === issue.longitude,
-        ).length;
-        const jitterX = duplicateCount > 1 ? hashOffset(issue.id) : 0;
-        const jitterY = duplicateCount > 1 ? hashOffset(`${issue.id}:y`) : 0;
-
-        return {
-            left: `${latitudeRange ? 12 + ((issue.latitude - minLatitude) / latitudeRange) * 76 + jitterX : 50 + jitterX}%`,
-            top: `${longitudeRange ? 88 - ((issue.longitude - minLongitude) / longitudeRange) * 76 + jitterY : 50 + jitterY}%`,
-        };
-    };
+    const publicMapMarkers = publicIssues.map((issue) => ({
+        id: issue.id,
+        latitude: issue.latitude,
+        longitude: issue.longitude,
+        color: severityColor(issue.severity),
+        label: `${translateSeverity(language, issue.severity)} · ${translateStatus(language, issue.status)}`,
+    }));
+    const dashboardMapMarkers = reports.map((report) => ({
+        id: report.reportId,
+        latitude: report.latitude,
+        longitude: report.longitude,
+        color: severityColor(report.severity.toLowerCase() as PublicIssue['severity']),
+        label: report.reportId,
+    }));
+    const reportPreviewMarkers = latitude && longitude
+        ? [{
+            id: 'preview',
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+            color: '#2878c8',
+            label: copy.reportPreviewTitle,
+        }]
+        : [];
 
     const pageClass = (page: PageId) => `page${currentPage === page ? ' active' : ''}`;
     const reportSubmitDisabled = reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100;
@@ -462,10 +457,13 @@ export default function Home() {
                         </div>
                         <div className="hero-card">
                             <h3>{copy.liveMapTitle}</h3>
-                            <div className="map hero-map" aria-label={copy.liveMapTitle}>
-                                {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${translateSeverity(language, issue.severity)} · ${translateStatus(language, issue.status)}`} aria-label={`${translateSeverity(language, issue.severity)}, ${translateStatus(language, issue.status)}`} />)}
-                                {publicIssues.length === 0 && <p className="map-empty hero-map-empty">{publicImpact ? copy.mapEmpty : copy.mapLoading}</p>}
-                            </div>
+                            <ReportMap
+                                markers={publicMapMarkers}
+                                className="geo-map hero-map"
+                                emptyLabel={publicImpact ? copy.mapEmpty : copy.mapLoading}
+                                height={190}
+                                zoom={12}
+                            />
                             <div className="map-legend hero-map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />{copy.severity.low}</span><span><i className="legend-dot medium" />{copy.severity.medium}</span><span><i className="legend-dot high" />{copy.severity.high}</span><span><i className="legend-dot critical" />{copy.severity.critical}</span></div>
                             {latestReport && <p className="hero-map-note">{copy.latestReport} <strong>{translateStatus(language, latestReport.status)}</strong></p>}
                         </div>
@@ -530,6 +528,13 @@ export default function Home() {
                     </div>
                     <div className="section dashboard-reports">
                         <h2>{copy.recentReports}</h2>
+                        {dashboardMapMarkers.length > 0 && (
+                            <div className="card dashboard-map-card">
+                                <h3>{copy.dashboardMapTitle}</h3>
+                                <p className="sub">{copy.dashboardMapSub}</p>
+                                <ReportMap markers={dashboardMapMarkers} className="geo-map dashboard-map" height={280} />
+                            </div>
+                        )}
                         <div className="reports">
                             {reportsBusy && <div className="card empty-reports">{copy.loadingReports}</div>}
                             {!reportsBusy && reports.length === 0 && <div className="card empty-reports">{copy.noReports}</div>}
@@ -538,7 +543,11 @@ export default function Home() {
                                     {report.photoUrl
                                         ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} loadingLabel={copy.loadingPhoto} />
                                         : <div className="report-photo report-photo-loading">{copy.noPhoto}</div>}
-                                    <div><h4>{report.reportId}</h4><p>{Number(report.latitude).toFixed(5)}, {Number(report.longitude).toFixed(5)} · {new Date(report.submittedAt).toLocaleDateString(language === 'kn' ? 'kn-IN' : 'en-IN')}</p></div>
+                                    <div>
+                                        <h4>{report.reportId}</h4>
+                                        <p>{Number(report.latitude).toFixed(6)}, {Number(report.longitude).toFixed(6)} · {new Date(report.submittedAt).toLocaleDateString(language === 'kn' ? 'kn-IN' : 'en-IN')}</p>
+                                        <a className="maps-link" href={googleMapsUrl(report.latitude, report.longitude)} target="_blank" rel="noopener noreferrer">{copy.openInMaps}</a>
+                                    </div>
                                     <div className="report-row-status"><span className={`badge ${report.status === 'closed' ? 'green' : 'orange'}`}>{translateStatus(language, report.status)}</span><br /><small className="muted-text">{report.potholePublicId} · {translateSeverity(language, report.severity)}</small></div>
                                 </div>
                             ))}
@@ -574,6 +583,14 @@ export default function Home() {
                                                     ? copy.photoReadyCapture
                                                     : copy.takePhotoFirst}
                             </div>
+                            {reportPreviewMarkers.length > 0 && (
+                                <div className="report-preview-map">
+                                    <strong>{copy.reportPreviewTitle}</strong>
+                                    <p className="sub">{copy.reportPreviewSub}</p>
+                                    <ReportMap markers={reportPreviewMarkers} className="geo-map report-map" height={240} zoom={18} />
+                                    <a className="maps-link" href={googleMapsUrl(Number(latitude), Number(longitude))} target="_blank" rel="noopener noreferrer">{copy.openInMaps}</a>
+                                </div>
+                            )}
                         </div>
                         <div className="field">
                             <label>{copy.stepSeverity}</label>
@@ -606,10 +623,13 @@ export default function Home() {
                     </div>
                     <div className="card public-map-card">
                         <div className="map-heading"><div><h3>{copy.mapHeadingTitle}</h3><p>{copy.mapHeadingSub}</p></div><span>{formatMessage(copy.visibleCount, { count: publicIssues.length })}</span></div>
-                        <div className="map public-map" aria-label={copy.mapHeadingTitle}>
-                            {publicIssues.map((issue) => <div key={issue.id} className="pin public-pin" style={{ ...pinPosition(issue), background: severityColor(issue.severity) }} title={`${translateSeverity(language, issue.severity)} · ${translateStatus(language, issue.status)}`} aria-label={`${translateSeverity(language, issue.severity)}, ${translateStatus(language, issue.status)}`} />)}
-                            {publicIssues.length === 0 && <p className="map-empty">{copy.publicMapEmpty}</p>}
-                        </div>
+                        <ReportMap
+                            markers={publicMapMarkers}
+                            className="geo-map public-map"
+                            emptyLabel={copy.publicMapEmpty}
+                            height={370}
+                            zoom={13}
+                        />
                         <div className="map-legend" aria-label="Severity colour legend"><span><i className="legend-dot low" />{copy.severity.low}</span><span><i className="legend-dot medium" />{copy.severity.medium}</span><span><i className="legend-dot high" />{copy.severity.high}</span><span><i className="legend-dot critical" />{copy.severity.critical}</span></div>
                     </div>
                     <div className="section public-issue-list">
@@ -623,7 +643,7 @@ export default function Home() {
                                         <strong>{issue.id}</strong>
                                         <span className={`badge ${issue.status === 'closed' ? 'green' : 'orange'}`}>{translateStatus(language, issue.status)}</span>
                                     </div>
-                                    <p>{translateSeverity(language, issue.severity)} · {copy.issueLocation}: {issue.latitude.toFixed(4)}, {issue.longitude.toFixed(4)}</p>
+                                    <p>{translateSeverity(language, issue.severity)} · {copy.exactLocation}: {issue.latitude.toFixed(6)}, {issue.longitude.toFixed(6)} · <a className="maps-link" href={googleMapsUrl(issue.latitude, issue.longitude)} target="_blank" rel="noopener noreferrer">{copy.openInMaps}</a></p>
                                 </div>
                             ))}
                         </div>

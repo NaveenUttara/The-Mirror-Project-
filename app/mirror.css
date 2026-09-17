@@ -959,6 +959,52 @@
             height: 370px
         }
 
+        .geo-map {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            overflow: hidden;
+            z-index: 1
+        }
+
+        .geo-map-empty {
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+            border: 1px solid #9ca3af;
+            border-radius: 17px;
+            color: #4b5563;
+            font-weight: 700;
+            text-align: center;
+            padding: 16px
+        }
+
+        .dashboard-map-card,
+        .report-preview-map {
+            margin-bottom: 16px
+        }
+
+        .dashboard-map-card h3,
+        .report-preview-map strong {
+            margin: 0 0 6px;
+            font-size: 18px
+        }
+
+        .report-preview-map {
+            margin-top: 14px
+        }
+
+        .maps-link {
+            display: inline-block;
+            margin-top: 8px;
+            color: var(--blue);
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: underline;
+            background: transparent;
+            padding: 0
+        }
+
         .public-issue-list {
             margin-top: 24px
         }

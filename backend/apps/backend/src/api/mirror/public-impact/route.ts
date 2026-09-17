@@ -19,9 +19,8 @@ export async function GET(_req: MedusaRequest, res: MedusaResponse) {
       .filter((pothole) => pothole.status !== "rejected")
       .map((pothole) => ({
         id: pothole.id,
-        // Round coordinates to about 100 metres before exposing them publicly.
-        latitude: Number(pothole.latitude.toFixed(3)),
-        longitude: Number(pothole.longitude.toFixed(3)),
+        latitude: pothole.latitude,
+        longitude: pothole.longitude,
         severity: pothole.severity,
         status: pothole.status,
       }))

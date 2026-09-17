@@ -146,8 +146,8 @@ export function getDemoPhoto(photoId: string, citizenId: string): DemoPhoto | un
 export function getDemoPublicImpact() {
   const issues = reports.map((report) => ({
     id: report.potholePublicId,
-    latitude: Number(report.latitude.toFixed(3)),
-    longitude: Number(report.longitude.toFixed(3)),
+    latitude: report.latitude,
+    longitude: report.longitude,
     severity: report.severity as "low" | "medium" | "high" | "critical",
     status: report.status,
   }));
