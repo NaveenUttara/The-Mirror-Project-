@@ -55,7 +55,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const user: UserRow = upsertDemoUser(
+        const user: UserRow = await upsertDemoUser(
             normalizedPhone,
             normalizedName,
             normalizedEmail || null,

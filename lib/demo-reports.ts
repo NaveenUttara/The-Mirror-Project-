@@ -88,7 +88,7 @@ export async function submitDemoReport(user: AuthenticatedUser, formData: FormDa
     return NextResponse.json({ error: validated.error }, { status: 400 });
   }
 
-  const report = createDemoReport({
+  const report = await createDemoReport({
     citizenId: user.userId,
     latitude: validated.latitude,
     longitude: validated.longitude,
@@ -106,9 +106,9 @@ export async function submitDemoReport(user: AuthenticatedUser, formData: FormDa
   });
 }
 
-export function listDemoReports(user: AuthenticatedUser) {
-  const profile = findDemoUserById(user.userId);
-  const reports = listDemoReportsForUser(user.userId).map((report) => ({
+export async function listDemoReports(user: AuthenticatedUser) {
+  const profile = await findDemoUserById(user.userId);
+  const reports = (await listDemoReportsForUser(user.userId)).map((report) => ({
     reportId: report.reportId,
     potholePublicId: report.potholePublicId,
     latitude: report.latitude,
@@ -125,8 +125,8 @@ export function listDemoReports(user: AuthenticatedUser) {
   });
 }
 
-export function getDemoPublicImpactResponse() {
-  return NextResponse.json(getDemoPublicImpact());
+export async function getDemoPublicImpactResponse() {
+  return NextResponse.json(await getDemoPublicImpact());
 }
 
 export function hasOracleConfig(): boolean {

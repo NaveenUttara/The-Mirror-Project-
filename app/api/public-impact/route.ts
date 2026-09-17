@@ -18,5 +18,5 @@ export async function GET() {
     }
   }
 
-  return getDemoPublicImpactResponse()
+  return await getDemoPublicImpactResponse()
 }

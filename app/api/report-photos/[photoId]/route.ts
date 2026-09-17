@@ -39,7 +39,7 @@ export async function GET(
 
     const user = authenticateRequest(request);
 
-    const demoPhoto = getDemoPhoto(photoId, user.userId);
+    const demoPhoto = await getDemoPhoto(photoId, user.userId);
     if (demoPhoto) {
       return new Response(new Uint8Array(demoPhoto.bytes), {
         headers: {
