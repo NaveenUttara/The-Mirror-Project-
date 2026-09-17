@@ -1,98 +1,115 @@
 import { createHash } from "crypto";
+import type { DemoReport, DemoUserRecord } from "@/lib/demo-persistence";
+import {
+  demoPhotoStorageKey,
+  loadDemoPhoto,
+  loadDemoSnapshot,
+  saveDemoPhoto,
+  saveDemoSnapshot,
+  type DemoPhotoRecord,
+  type DemoSnapshot,
+} from "@/lib/demo-persistence";
 
-type DemoUser = {
-  id: string;
-  name: string;
-  phone: string;
-  email: string | null;
-  role: string;
+export type { DemoReport, DemoUserRecord };
+
+type DemoGlobal = typeof globalThis & {
+  demoStoreSnapshot?: DemoSnapshot;
+  demoStoreLoadPromise?: Promise<void>;
 };
 
-export type DemoReport = {
-  reportId: string;
-  potholePublicId: string;
-  citizenId: string;
-  latitude: number;
-  longitude: number;
-  severity: string;
-  status: string;
-  description: string | null;
-  submittedAt: string;
-  photoId: string;
-};
-
-type DemoPhoto = {
-  citizenId: string;
-  bytes: Uint8Array;
-  mimeType: string;
-};
-
-const users = new Map<string, DemoUser>();
-const reports: DemoReport[] = [];
-const photos = new Map<string, DemoPhoto>();
-let reportSequence = 0;
-let potholeSequence = 0;
-let photoSequence = 0;
+const demoGlobal = globalThis as DemoGlobal;
 
 function demoUserId(phone: string): string {
   return createHash("sha256").update(phone).digest("hex").slice(0, 12);
 }
 
-export function findDemoUser(phone: string): DemoUser | undefined {
-  return users.get(phone);
+function snapshot(): DemoSnapshot {
+  if (!demoGlobal.demoStoreSnapshot) {
+    demoGlobal.demoStoreSnapshot = {
+      version: 1,
+      users: [],
+      reports: [],
+      sequences: {
+        reportSequence: 0,
+        potholeSequence: 0,
+        photoSequence: 0,
+      },
+      photos: {},
+    };
+  }
+  return demoGlobal.demoStoreSnapshot;
 }
 
-export function upsertDemoUser(
+export async function ensureDemoStoreLoaded(): Promise<void> {
+  if (demoGlobal.demoStoreSnapshot) {
+    return;
+  }
+
+  if (!demoGlobal.demoStoreLoadPromise) {
+    demoGlobal.demoStoreLoadPromise = loadDemoSnapshot().then((loaded) => {
+      demoGlobal.demoStoreSnapshot = loaded;
+    });
+  }
+
+  await demoGlobal.demoStoreLoadPromise;
+}
+
+async function persistDemoStore(): Promise<void> {
+  await saveDemoSnapshot(snapshot());
+}
+
+function findUserByPhone(phone: string): DemoUserRecord | undefined {
+  return snapshot().users.find((user) => user.phone === phone);
+}
+
+export async function findDemoUser(phone: string): Promise<DemoUserRecord | undefined> {
+  await ensureDemoStoreLoaded();
+  return findUserByPhone(phone);
+}
+
+export async function upsertDemoUser(
   phone: string,
   name: string,
   email: string | null,
-): DemoUser {
-  const existing = users.get(phone);
+): Promise<DemoUserRecord> {
+  await ensureDemoStoreLoaded();
+  const store = snapshot();
+  const existing = findUserByPhone(phone);
 
   if (existing) {
-    const updated = {
-      ...existing,
-      name,
-      email,
-    };
-    users.set(phone, updated);
-    return updated;
+    existing.name = name;
+    existing.email = email;
+    await persistDemoStore();
+    return existing;
   }
 
-  const created: DemoUser = {
+  const created: DemoUserRecord = {
     id: demoUserId(phone),
     name,
     phone,
     email,
     role: "citizen",
   };
-  users.set(phone, created);
+  store.users.push(created);
+  await persistDemoStore();
   return created;
 }
 
-export function getOrCreateDemoUser(
+export async function getOrCreateDemoUser(
   phone: string,
   name: string,
   email: string | null,
-): DemoUser {
-  const existing = users.get(phone);
-  if (existing) {
-    return existing;
-  }
-
-  return upsertDemoUser(phone, name, email);
+): Promise<DemoUserRecord> {
+  await ensureDemoStoreLoaded();
+  return findUserByPhone(phone) || upsertDemoUser(phone, name, email);
 }
 
-export function findDemoUserById(userId: string): DemoUser | undefined {
-  for (const user of users.values()) {
-    if (user.id === userId) {
-      return user;
-    }
-  }
-  return undefined;
+export async function findDemoUserById(userId: string): Promise<DemoUserRecord | undefined> {
+  await ensureDemoStoreLoaded();
+  return snapshot().users.find((user) => user.id === userId);
 }
 
-export function createDemoReport(input: {
+export async function createDemoReport(input: {
   citizenId: string;
   latitude: number;
   longitude: number;
@@ -100,14 +117,18 @@ export function createDemoReport(input: {
   description: string | null;
   photoBytes: Uint8Array;
   mimeType: string;
-}): DemoReport {
-  reportSequence += 1;
-  potholeSequence += 1;
-  photoSequence += 1;
+}): Promise<DemoReport> {
+  await ensureDemoStoreLoaded();
+  const store = snapshot();
 
-  const reportId = `MIR-RPT-${String(reportSequence).padStart(8, "0")}`;
-  const potholePublicId = `MIR-POT-${String(potholeSequence).padStart(8, "0")}`;
-  const photoId = String(photoSequence);
+  store.sequences.reportSequence += 1;
+  store.sequences.potholeSequence += 1;
+  store.sequences.photoSequence += 1;
+
+  const reportId = `MIR-RPT-${String(store.sequences.reportSequence).padStart(8, "0")}`;
+  const potholePublicId = `MIR-POT-${String(store.sequences.potholeSequence).padStart(8, "0")}`;
+  const photoId = String(store.sequences.photoSequence);
+  const storageKey = demoPhotoStorageKey(photoId, input.mimeType);
 
   const report: DemoReport = {
     reportId,
@@ -122,28 +143,45 @@ export function createDemoReport(input: {
     photoId,
   };
 
-  photos.set(photoId, {
+  store.photos[photoId] = {
     citizenId: input.citizenId,
-    bytes: input.photoBytes,
     mimeType: input.mimeType,
-  });
-  reports.unshift(report);
+    storageKey,
+  };
+  store.reports.unshift(report);
+
+  await saveDemoPhoto(storageKey, input.photoBytes, input.mimeType);
+  await persistDemoStore();
   return report;
 }
 
-export function listDemoReportsForUser(citizenId: string): DemoReport[] {
-  return reports.filter((report) => report.citizenId === citizenId);
+export async function listDemoReportsForUser(citizenId: string): Promise<DemoReport[]> {
+  await ensureDemoStoreLoaded();
+  return snapshot().reports.filter((report) => report.citizenId === citizenId);
 }
 
-export function getDemoPhoto(photoId: string, citizenId: string): DemoPhoto | undefined {
-  const photo = photos.get(photoId);
+export async function getDemoPhoto(
+  photoId: string,
+  citizenId: string,
+): Promise<{ bytes: Uint8Array; mimeType: string } | undefined> {
+  await ensureDemoStoreLoaded();
+  const photo = snapshot().photos[photoId] as DemoPhotoRecord | undefined;
   if (!photo || photo.citizenId !== citizenId) {
     return undefined;
   }
-  return photo;
+
+  const bytes = await loadDemoPhoto(photo.storageKey);
+  if (!bytes) {
+    return undefined;
+  }
+
+  return { bytes, mimeType: photo.mimeType };
 }
 
-export function getDemoPublicImpact() {
+export async function getDemoPublicImpact() {
+  await ensureDemoStoreLoaded();
+  const reports = snapshot().reports;
+
   const issues = reports.map((report) => ({
     id: report.potholePublicId,
     latitude: report.latitude,
@@ -174,4 +212,3 @@ export function getDemoPublicImpact() {
 export function demoReportPhotoUrl(report: DemoReport): string {
   return `/api/report-photos/${report.photoId}`;
 }
-

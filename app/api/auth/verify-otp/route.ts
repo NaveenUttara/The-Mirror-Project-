@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         }
 
         let user: UserRow;
-        const existingUser = findDemoUser(phone);
+        const existingUser = await findDemoUser(phone);
         const profileIsIncomplete = !existingUser
             || !existingUser.name.trim()
             || existingUser.name.trim().toLowerCase() === 'citizen';
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
                 );
             }
 
-            user = upsertDemoUser(
+            user = await upsertDemoUser(
                 phone,
                 normalizedName,
                 normalizedEmail || null,

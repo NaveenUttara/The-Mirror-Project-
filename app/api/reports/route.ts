@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     const user = authenticateRequest(request);
 
     if (!hasOracleConfig()) {
-      return submitDemoReport(user, formData);
+      return await submitDemoReport(user, formData);
     }
 
     const validated = validateReportSubmission(formData);
@@ -220,7 +220,7 @@ export async function GET(request: Request) {
     const user = authenticateRequest(request);
 
     if (!hasOracleConfig()) {
-      return listDemoReports(user);
+      return await listDemoReports(user);
     }
 
     const connection = await getConnection();
