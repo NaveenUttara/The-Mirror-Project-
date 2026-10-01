@@ -54,6 +54,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const photoCapturedAt = text(body, "photoCapturedAt")
     const locationCapturedAt = text(body, "locationCapturedAt")
     const locationAccuracy = Number(text(body, "locationAccuracy"))
+    const locationSource = text(body, "locationSource") || "device"
     const photo = req.file
 
     if (!latitudeText || !Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
@@ -74,17 +75,20 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const photoTime = Date.parse(photoCapturedAt)
     const locationTime = Date.parse(locationCapturedAt)
-    const now = Date.now()
-    if (
-      !Number.isFinite(photoTime) ||
-      !Number.isFinite(locationTime) ||
-      now - photoTime > 15 * 60 * 1000 ||
-      now - locationTime > 15 * 60 * 1000 ||
-      photoTime - now > 60 * 1000 ||
-      locationTime - now > 60 * 1000 ||
-      Math.abs(photoTime - locationTime) > 2 * 60 * 1000
-    ) {
-      return res.status(400).json({ error: "Take a fresh photo and capture its location again" })
+    if (!Number.isFinite(photoTime) || !Number.isFinite(locationTime)) {
+      return res.status(400).json({ error: "Photograph location metadata is missing or invalid" })
+    }
+    if (locationSource !== "photo_exif") {
+      const now = Date.now()
+      if (
+        now - photoTime > 15 * 60 * 1000 ||
+        now - locationTime > 15 * 60 * 1000 ||
+        photoTime - now > 60 * 1000 ||
+        locationTime - now > 60 * 1000 ||
+        Math.abs(photoTime - locationTime) > 2 * 60 * 1000
+      ) {
+        return res.status(400).json({ error: "Take a fresh photo and capture its location again" })
+      }
     }
     if (!Number.isFinite(locationAccuracy) || locationAccuracy <= 0 || locationAccuracy > 100) {
       return res.status(400).json({ error: "GPS accuracy must be within 100 metres" })
