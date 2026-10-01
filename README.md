@@ -76,15 +76,33 @@ Three photographs created before the R2 change remain under the ignored project 
 
 ## Email alerts when a citizen submits a report
 
-Each successful report can automatically email up to several staff addresses (for example BBMP or operations inboxes). Configure [Resend](https://resend.com) on Vercel or in `.env.local`:
+After a report is saved successfully, the API emails BBMP using GPS zone routing:
+
+| Recipient | Address |
+| --- | --- |
+| BBMP Commissioner (always) | `comm@bbmp.gov.in` |
+| BBMP general grievance (always) | `contactusbbmp@gmail.com` |
+| East Zone | `zc-east@bbmp.gov.in` |
+| West Zone | `zc-west@bbmp.gov.in` |
+| South Zone | `zc-south@bbmp.gov.in` |
+| RR Nagar Zone | `zc-rrnagara@bbmp.gov.in` |
+
+The zonal address is chosen from the complaint GPS (approximate Bengaluru bounding boxes in `lib/bbmp-zone-mail.ts`). Refine those boundaries with official BBMP GIS when available.
+
+Configure [Resend](https://resend.com) on Vercel or in `.env.local`:
 
 ```text
 RESEND_API_KEY=re_xxxxxxxx
 REPORT_EMAIL_FROM=reports@your-verified-domain.com
-REPORT_NOTIFY_EMAILS=ops1@example.com,ops2@example.com,bbmp.desk@example.com
 ```
 
-`REPORT_NOTIFY_EMAILS` is a comma-separated list (4–5 addresses is typical). The message includes report ID, GPS, severity, citizen contact details, a Google Maps link, and the pothole photograph as an attachment. If these variables are missing, reports still save; email is skipped.
+Optional extra inboxes (comma-separated):
+
+```text
+REPORT_NOTIFY_EMAILS=ops@example.com
+```
+
+The message includes report ID, zone, GPS, severity, citizen contact details, a Google Maps link, and the pothole photograph as an attachment. If Resend is not configured, reports still save; email is skipped.
 
 ## Run the Medusa backend
 

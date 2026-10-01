@@ -1,3 +1,9 @@
+import {
+  isInsideBengaluruServiceArea,
+  resolveBbmpNotificationRecipients,
+  type BbmpZoneMatch,
+} from "@/lib/bbmp-zone-mail";
+
 export type ReportNotifyPayload = {
   reportId: string;
   potholePublicId: string;
@@ -21,7 +27,7 @@ const PHOTO_EXTENSION: Record<string, string> = {
   "image/webp": ".webp",
 };
 
-function parseRecipientList(): string[] {
+function parseExtraRecipientList(): string[] {
   const raw = process.env.REPORT_NOTIFY_EMAILS || "";
   return raw
     .split(/[,;]+/)
@@ -30,9 +36,7 @@ function parseRecipientList(): string[] {
 }
 
 export function isReportEmailNotifyConfigured(): boolean {
-  const recipients = parseRecipientList();
-  return recipients.length > 0
-    && Boolean(process.env.RESEND_API_KEY?.trim())
+  return Boolean(process.env.RESEND_API_KEY?.trim())
     && Boolean(process.env.REPORT_EMAIL_FROM?.trim());
 }
 
@@ -40,13 +44,20 @@ function mapsLink(latitude: number, longitude: number): string {
   return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
-function buildHtml(payload: ReportNotifyPayload): string {
+function buildHtml(payload: ReportNotifyPayload, zone: BbmpZoneMatch | null): string {
   const description = payload.description?.trim() || "(No description provided)";
+  const zoneLine = zone
+    ? `<p><strong>BBMP zone:</strong> ${zone.zoneName} (${zone.zonalEmail})</p>`
+    : isInsideBengaluruServiceArea(payload.latitude, payload.longitude)
+      ? "<p><strong>BBMP zone:</strong> Could not be auto-matched — central BBMP only.</p>"
+      : "<p><strong>BBMP zone:</strong> Outside configured Bengaluru zones — central BBMP only.</p>";
+
   return `
-    <h2>New pothole report — The Mirror Project</h2>
+    <h2>New pothole complaint — The Mirror Project → BBMP</h2>
     <p><strong>Report ID:</strong> ${payload.reportId}</p>
     <p><strong>Pothole ID:</strong> ${payload.potholePublicId}</p>
     <p><strong>Severity:</strong> ${payload.severity}</p>
+    ${zoneLine}
     <p><strong>Location:</strong> ${payload.latitude}, ${payload.longitude}</p>
     <p><a href="${mapsLink(payload.latitude, payload.longitude)}">Open in Google Maps</a></p>
     <p><strong>Description:</strong></p>
@@ -59,13 +70,18 @@ function buildHtml(payload: ReportNotifyPayload): string {
 }
 
 export async function sendReportNotificationEmail(payload: ReportNotifyPayload): Promise<void> {
-  const recipients = parseRecipientList();
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.REPORT_EMAIL_FROM?.trim();
 
-  if (recipients.length === 0 || !apiKey || !from) {
+  if (!apiKey || !from) {
     return;
   }
+
+  const { recipients, zone } = resolveBbmpNotificationRecipients(
+    payload.latitude,
+    payload.longitude,
+    parseExtraRecipientList(),
+  );
 
   const attachments = payload.photo
     ? [{
@@ -73,6 +89,8 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
       content: Buffer.from(payload.photo.bytes).toString("base64"),
     }]
     : undefined;
+
+  const zoneLabel = zone ? zone.zoneName : "Central BBMP";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -83,8 +101,8 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
     body: JSON.stringify({
       from,
       to: recipients,
-      subject: `[Mirror] Pothole report ${payload.reportId} (${payload.severity})`,
-      html: buildHtml(payload),
+      subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
+      html: buildHtml(payload, zone),
       attachments,
     }),
   });
