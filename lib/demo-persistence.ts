@@ -8,6 +8,18 @@ const LOCAL_STORE_DIR = path.join(process.cwd(), "storage", "demo");
 const LOCAL_STORE_PATH = path.join(LOCAL_STORE_DIR, "store.json");
 const LOCAL_PHOTO_DIR = path.join(LOCAL_STORE_DIR, "photos");
 
+function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL
+    || process.env.AWS_LAMBDA_FUNCTION_NAME
+    || process.env.AWS_EXECUTION_ENV,
+  );
+}
+
+function canUseLocalDemoStorage(): boolean {
+  return !isServerlessRuntime();
+}
+
 export type DemoUserRecord = {
   id: string;
   name: string;
@@ -95,9 +107,11 @@ export async function loadDemoSnapshot(): Promise<DemoSnapshot> {
     }
   }
 
-  const localSnapshot = await readLocalStore();
-  if (localSnapshot) {
-    return localSnapshot;
+  if (canUseLocalDemoStorage()) {
+    const localSnapshot = await readLocalStore();
+    if (localSnapshot) {
+      return localSnapshot;
+    }
   }
 
   return emptyDemoSnapshot();
@@ -108,15 +122,14 @@ export async function saveDemoSnapshot(snapshot: DemoSnapshot): Promise<void> {
 
   if (isR2Configured()) {
     await writeR2Object(R2_STORE_KEY, new TextEncoder().encode(payload), "application/json");
+    return;
   }
 
-  try {
-    await writeLocalStore(snapshot);
-  } catch (error) {
-    if (!isR2Configured()) {
-      throw error;
-    }
+  if (!canUseLocalDemoStorage()) {
+    return;
   }
+
+  await writeLocalStore(snapshot);
 }
 
 export async function saveDemoPhoto(
@@ -126,17 +139,16 @@ export async function saveDemoPhoto(
 ): Promise<void> {
   if (isR2Configured()) {
     await writeR2Object(`mirror-demo/photos/${storageKey}`, bytes, mimeType);
+    return;
   }
 
-  try {
-    const targetPath = localPhotoPath(storageKey);
-    await mkdir(path.dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, bytes);
-  } catch (error) {
-    if (!isR2Configured()) {
-      throw error;
-    }
+  if (!canUseLocalDemoStorage()) {
+    return;
   }
+
+  const targetPath = localPhotoPath(storageKey);
+  await mkdir(path.dirname(targetPath), { recursive: true });
+  await writeFile(targetPath, bytes);
 }
 
 export async function loadDemoPhoto(storageKey: string): Promise<Uint8Array | null> {
@@ -145,6 +157,10 @@ export async function loadDemoPhoto(storageKey: string): Promise<Uint8Array | nu
     if (bytes) {
       return bytes;
     }
+  }
+
+  if (!canUseLocalDemoStorage()) {
+    return null;
   }
 
   try {

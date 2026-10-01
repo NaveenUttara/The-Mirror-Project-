@@ -115,7 +115,8 @@ export default function Home() {
     const [toastMessage, setToastMessage] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
     const [language, setLanguage] = useState<Language>(() => getStoredLanguage());
-    const photoInputRef = useRef<HTMLInputElement>(null);
+    const photoCameraInputRef = useRef<HTMLInputElement>(null);
+    const photoUploadInputRef = useRef<HTMLInputElement>(null);
     const copy = t(language);
 
     const showToast = (message: string) => {
@@ -129,9 +130,16 @@ export default function Home() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const clearAuthSession = () => {
+        window.localStorage.removeItem('token');
+        setAuthToken('');
+        setReports([]);
+        setUserName('Citizen');
+    };
+
     const loadReports = async (token = authToken) => {
         if (!token) {
-            return;
+            return false;
         }
 
         setReportsBusy(true);
@@ -140,15 +148,22 @@ export default function Home() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await response.json().catch(() => ({}));
+            if (response.status === 401) {
+                clearAuthSession();
+                showToast(copy.toasts.signInRequired);
+                return false;
+            }
             if (!response.ok) {
                 showToast(data.error || copy.toasts.loadReportsFailed);
-                return;
+                return false;
             }
             setReports(data.reports || []);
             setUserName(data.user?.name || 'Citizen');
+            return true;
         } catch (error) {
             console.error(error);
             showToast(copy.toasts.networkReports);
+            return false;
         } finally {
             setReportsBusy(false);
         }
@@ -162,6 +177,14 @@ export default function Home() {
         }
         showPage('dashboard');
         void loadReports();
+    };
+
+    const openReportEntry = () => {
+        if (authToken) {
+            showPage('report');
+            return;
+        }
+        showPage('login');
     };
 
     const openPublicImpact = () => {
@@ -184,6 +207,12 @@ export default function Home() {
             void loadReports(authToken);
         }
     }, [authToken]);
+
+    useEffect(() => {
+        if (authToken && currentPage === 'login') {
+            showPage('dashboard');
+        }
+    }, [authToken, currentPage]);
 
     useEffect(() => {
         void loadPublicImpact();
@@ -296,6 +325,11 @@ export default function Home() {
         );
     };
 
+    const resetPhotoInputs = () => {
+        if (photoCameraInputRef.current) photoCameraInputRef.current.value = '';
+        if (photoUploadInputRef.current) photoUploadInputRef.current.value = '';
+    };
+
     const handlePhotoCaptured = (file: File | null) => {
         setPhotoFile(file);
         setLatitude('');
@@ -311,6 +345,7 @@ export default function Home() {
 
         setPhotoCapturedAt(new Date().toISOString());
         showToast(copy.toasts.photoCaptured);
+        resetPhotoInputs();
     };
 
     const submitReport = async () => {
@@ -370,9 +405,7 @@ export default function Home() {
             setDescription('');
             setSeverity('Medium');
             setPhotoConsent(false);
-            if (photoInputRef.current) {
-                photoInputRef.current.value = '';
-            }
+            resetPhotoInputs();
             await loadReports();
             showPage('success');
             showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
@@ -451,7 +484,7 @@ export default function Home() {
                             <h1>{copy.heroTitleLine1}<br />{copy.heroTitleLine2}<br /><span style={{ color: 'var(--green)' }}>{copy.heroTitleLine3}</span></h1>
                             <p>{copy.heroBody}</p>
                             <div className="actions">
-                                <button className="primary" type="button" onClick={() => showPage('login')}>{copy.reportPothole}</button>
+                                <button className="primary" type="button" onClick={openReportEntry}>{copy.reportPothole}</button>
                                 <button className="secondary" type="button" onClick={openDashboard}>{copy.trackReport}</button>
                             </div>
                         </div>
@@ -561,8 +594,12 @@ export default function Home() {
                         <div className="field">
                             <label>{copy.stepPhoto}</label>
                             <label className="consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /><span>{copy.photoConsentBefore} {copy.photoConsentAfter} <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>{copy.learnMore}</button></span></label>
-                            <input ref={photoInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
-                            <div className="upload"><button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoInputRef.current?.click()}>{copy.takePhoto}</button></div>
+                            <input ref={photoCameraInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
+                            <input ref={photoUploadInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
+                            <div className="upload">
+                                <button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoCameraInputRef.current?.click()}>{copy.takePhoto}</button>
+                                <button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoUploadInputRef.current?.click()}>{copy.uploadPhoto}</button>
+                            </div>
                             <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : copy.photoHint}</small>
                         </div>
                         <div className="field">
