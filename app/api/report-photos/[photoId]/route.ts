@@ -10,7 +10,8 @@ import {
   loadReportPhoto,
 } from "@/lib/report-storage";
 import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy";
-import { shouldUseMedusaBackend } from "@/lib/token-kind";
+import { getBearerToken, isJwtToken, shouldUseMedusaBackend } from "@/lib/token-kind";
+import { isPostgresConfigured, loadPostgresPhoto } from "@/lib/mirror-postgres";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,24 @@ export async function GET(
       }
     }
 
-    const user = authenticateRequest(request);
+    const user = await authenticateRequest(request);
+    const token = getBearerToken(request);
+
+    if (isPostgresConfigured() && !isJwtToken(token)) {
+      const postgresPhoto = await loadPostgresPhoto(photoId, user.userId);
+      if (postgresPhoto) {
+        return new Response(new Uint8Array(postgresPhoto.bytes), {
+          headers: {
+            "Content-Type": postgresPhoto.mimeType,
+            "Content-Length": String(postgresPhoto.bytes.byteLength),
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": `inline; filename="report-${photoId}"`,
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
+      }
+      return NextResponse.json({ error: "Photograph not found" }, { status: 404 });
+    }
 
     const demoPhoto = await getDemoPhoto(photoId, user.userId);
     if (demoPhoto) {

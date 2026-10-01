@@ -4,6 +4,8 @@ export const LANGUAGE_STORAGE_KEY = 'mirror_lang';
 
 const statusLabelsEn: Record<string, string> = {
     reported: 'Reported',
+    submitted: 'Submitted',
+    under_verification: 'Under verification',
     verified: 'Verified',
     assigned: 'Assigned',
     in_progress: 'In progress',
@@ -15,6 +17,8 @@ const statusLabelsEn: Record<string, string> = {
 
 const statusLabelsKn: Record<string, string> = {
     reported: 'ವರದಿ ಮಾಡಲಾಗಿದೆ',
+    submitted: 'ಸಲ್ಲಿಸಲಾಗಿದೆ',
+    under_verification: 'ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
     verified: 'ಪರಿಶೀಲಿಸಲಾಗಿದೆ',
     assigned: 'ನಿಯೋಜಿಸಲಾಗಿದೆ',
     in_progress: 'ಪ್ರಗತಿಯಲ್ಲಿದೆ',

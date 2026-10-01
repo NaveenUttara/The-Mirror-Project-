@@ -51,6 +51,31 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Production on Vercel (reports and map counts)
+
+Without persistent storage, Vercel serverless functions **reset in-memory demo data**, so the home page can show **0 reports** even after citizens submit complaints.
+
+Configure **one** of these on Vercel (Production):
+
+1. **Recommended — Neon PostgreSQL** (same schema as the Medusa backend):
+
+```text
+DATABASE_URL=postgresql://...
+```
+
+When `DATABASE_URL` is set, login, reports, dashboard, and the public map use PostgreSQL instead of ephemeral demo memory.
+
+2. **Alternative — Cloudflare R2** for the demo JSON store (see photograph storage below). Reports persist in `mirror-demo/store.json` in your bucket.
+
+For production you typically want **both** `DATABASE_URL` and the four `R2_*` variables (database for reports, R2 for photographs).
+
+Verify:
+
+```powershell
+npm run postgres:check
+npm run storage:check
+```
+
 ## Photograph storage
 
 The current report API uploads new photographs to a private Cloudflare R2 bucket. The database stores an object key such as `report-photos/<generated-id>.jpg`, not the image bytes. The dashboard receives an application URL such as `/api/report-photos/123`, sends the signed-in user's bearer token, and displays the returned image. The API confirms that the photograph belongs to that citizen before downloading it from R2.

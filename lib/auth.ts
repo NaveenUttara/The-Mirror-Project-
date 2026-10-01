@@ -1,5 +1,7 @@
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { getJwtSecret } from "@/lib/jwt-secret";
+import { authenticatePostgresSession, isPostgresConfigured } from "@/lib/mirror-postgres";
+import { isJwtToken } from "@/lib/token-kind";
 
 export type AuthenticatedUser = {
   userId: string;
@@ -7,15 +9,21 @@ export type AuthenticatedUser = {
   role: string;
 };
 
-export function authenticateRequest(request: Request): AuthenticatedUser {
+export async function authenticateRequest(request: Request): Promise<AuthenticatedUser> {
   const authorization = request.headers.get("authorization");
 
   if (!authorization?.startsWith("Bearer ")) {
     throw new Error("AUTH_REQUIRED");
   }
 
+  const token = authorization.slice(7).trim();
+
+  if (isPostgresConfigured() && !isJwtToken(token)) {
+    return authenticatePostgresSession(token);
+  }
+
   try {
-    const payload = jwt.verify(authorization.slice(7), getJwtSecret()) as JwtPayload;
+    const payload = jwt.verify(token, getJwtSecret()) as JwtPayload;
 
     if (!payload.userId || !payload.phone) {
       throw new Error("AUTH_REQUIRED");
