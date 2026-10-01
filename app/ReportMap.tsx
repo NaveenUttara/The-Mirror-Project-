@@ -114,13 +114,14 @@ export default function ReportMap({
         });
     }, [markers, zoom]);
 
-    if (markers.length === 0 && emptyLabel) {
-        return (
-            <div className={`${className} geo-map-empty`} style={{ height }}>
-                <p>{emptyLabel}</p>
-            </div>
-        );
-    }
-
-    return <div ref={containerRef} className={className} style={{ height }} aria-label="Map of reported pothole locations" />;
+    return (
+        <div className="geo-map-shell" style={{ height }}>
+            <div ref={containerRef} className={className} style={{ height: '100%', width: '100%' }} aria-label="Map of reported pothole locations" />
+            {markers.length === 0 && emptyLabel && (
+                <div className="geo-map-empty-overlay" role="status">
+                    <p>{emptyLabel}</p>
+                </div>
+            )}
+        </div>
+    );
 }

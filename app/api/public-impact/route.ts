@@ -1,22 +1,30 @@
-import { NextResponse } from "next/server"
-import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy"
-import { getDemoPublicImpactResponse } from "@/lib/demo-reports"
+import { NextResponse } from "next/server";
+import { getDemoPublicImpact } from "@/lib/demo-store";
+import { mergePublicImpact, type PublicImpactData } from "@/lib/public-impact-merge";
+import { getMedusaBackendUrl } from "@/lib/medusa-proxy";
 
-export async function GET() {
-  const medusaUrl = getMedusaBackendUrl()
-
-  if (medusaUrl) {
-    try {
-      const response = await fetch(`${medusaUrl}/mirror/public-impact`, {
-        cache: "no-store",
-      })
-      if (response.ok) {
-        return forwardedResponse(response)
-      }
-    } catch (error) {
-      console.error("[public-impact] Medusa request failed:", error)
-    }
+async function fetchMedusaPublicImpact(): Promise<PublicImpactData | null> {
+  const medusaUrl = getMedusaBackendUrl();
+  if (!medusaUrl) {
+    return null;
   }
 
-  return await getDemoPublicImpactResponse()
+  try {
+    const response = await fetch(`${medusaUrl}/mirror/public-impact`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return await response.json() as PublicImpactData;
+  } catch (error) {
+    console.error("[public-impact] Medusa request failed:", error);
+    return null;
+  }
+}
+
+export async function GET() {
+  const demoImpact = await getDemoPublicImpact();
+  const medusaImpact = await fetchMedusaPublicImpact();
+  return NextResponse.json(mergePublicImpact(demoImpact, medusaImpact));
 }

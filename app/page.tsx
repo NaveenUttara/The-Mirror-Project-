@@ -226,6 +226,12 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
+        if (currentPage === 'home' || currentPage === 'impact') {
+            void loadPublicImpact();
+        }
+    }, [currentPage]);
+
+    useEffect(() => {
         document.documentElement.lang = language === 'kn' ? 'kn' : 'en';
     }, [language]);
 
@@ -446,6 +452,7 @@ export default function Home() {
             setPhotoConsent(false);
             resetPhotoInputs();
             await loadReports();
+            void loadPublicImpact();
             showPage('success');
             showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
         } catch (error) {
@@ -462,13 +469,16 @@ export default function Home() {
     const closedCount = reports.filter((report) => report.status === 'closed').length;
     const latestReport = reports[0];
     const publicIssues = publicImpact?.issues || [];
-    const publicMapMarkers = publicIssues.map((issue) => ({
-        id: issue.id,
-        latitude: issue.latitude,
-        longitude: issue.longitude,
-        color: severityColor(issue.severity),
-        label: `${translateSeverity(language, issue.severity)} · ${translateStatus(language, issue.status)}`,
-    }));
+    const publicMapMarkers = publicIssues.map((issue) => {
+        const severityKey = issue.severity.toLowerCase() as PublicIssue['severity'];
+        return {
+            id: issue.id,
+            latitude: issue.latitude,
+            longitude: issue.longitude,
+            color: severityColor(severityKey),
+            label: `${translateSeverity(language, severityKey)} · ${translateStatus(language, issue.status)}`,
+        };
+    });
     const dashboardMapMarkers = reports.map((report) => ({
         id: report.reportId,
         latitude: report.latitude,
@@ -532,7 +542,7 @@ export default function Home() {
                             <ReportMap
                                 markers={publicMapMarkers}
                                 className="geo-map hero-map"
-                                emptyLabel={publicImpact ? copy.mapEmpty : copy.mapLoading}
+                                emptyLabel={publicImpact === null ? copy.mapLoading : copy.mapEmpty}
                                 height={190}
                                 zoom={12}
                             />
