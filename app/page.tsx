@@ -11,12 +11,8 @@ import {
     translateStatus,
     type Language,
 } from './i18n';
-import { PHOTO_EXIF_ASSUMED_ACCURACY_METERS, readPhotoExifLocation } from '@/lib/photo-exif';
 import ReportMap, { googleMapsUrl } from './ReportMap';
 import './mirror.css';
-
-type PhotoPickOrigin = 'camera' | 'upload';
-type LocationSource = 'device' | 'photo_exif';
 
 type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
 type LegalType = 'terms' | 'privacy';
@@ -113,9 +109,6 @@ export default function Home() {
     const [locationPermissionState, setLocationPermissionState] = useState<LocationPermissionState>('idle');
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoConsent, setPhotoConsent] = useState(false);
-    const [locationSource, setLocationSource] = useState<LocationSource | null>(null);
-    const [photoExifBusy, setPhotoExifBusy] = useState(false);
-    const [lastPhotoOrigin, setLastPhotoOrigin] = useState<PhotoPickOrigin | null>(null);
     const [reportBusy, setReportBusy] = useState(false);
     const [latestReportId, setLatestReportId] = useState('');
     const [legalType, setLegalType] = useState<LegalType | null>(null);
@@ -305,7 +298,6 @@ export default function Home() {
                 setLongitude(position.coords.longitude.toFixed(7));
                 setLocationAccuracy(position.coords.accuracy);
                 setLocationCapturedAt(new Date(position.timestamp).toISOString());
-                setLocationSource('device');
                 setLocationPermissionState('granted');
                 setLocationBusy(false);
                 if (position.coords.accuracy > 100) {
@@ -338,51 +330,22 @@ export default function Home() {
         if (photoUploadInputRef.current) photoUploadInputRef.current.value = '';
     };
 
-    const applyExifLocation = (exif: { latitude: number; longitude: number; capturedAt: string | null }) => {
-        const capturedAt = exif.capturedAt || new Date().toISOString();
-        setLatitude(exif.latitude.toFixed(7));
-        setLongitude(exif.longitude.toFixed(7));
-        setLocationAccuracy(PHOTO_EXIF_ASSUMED_ACCURACY_METERS);
-        setPhotoCapturedAt(capturedAt);
-        setLocationCapturedAt(capturedAt);
-        setLocationSource('photo_exif');
-        setLocationPermissionState('granted');
-    };
-
-    const handlePhotoSelected = async (file: File | null, origin: PhotoPickOrigin) => {
+    const handlePhotoCaptured = (file: File | null) => {
         setPhotoFile(file);
         setLatitude('');
         setLongitude('');
         setLocationAccuracy(null);
         setLocationCapturedAt('');
-        setLocationSource(null);
         setLocationPermissionState('idle');
 
         if (!file) {
             setPhotoCapturedAt('');
-            setLastPhotoOrigin(null);
             return;
         }
 
-        setLastPhotoOrigin(origin);
-        setPhotoExifBusy(true);
-        try {
-            const exif = await readPhotoExifLocation(file);
-            if (exif) {
-                applyExifLocation(exif);
-                showToast(copy.toasts.locationFromPhoto);
-            } else if (origin === 'camera') {
-                setPhotoCapturedAt(new Date().toISOString());
-                showToast(copy.toasts.photoCaptured);
-                captureLocation();
-            } else {
-                setPhotoCapturedAt(new Date(file.lastModified).toISOString());
-                showToast(copy.toasts.uploadMissingGps);
-            }
-        } finally {
-            setPhotoExifBusy(false);
-            resetPhotoInputs();
-        }
+        setPhotoCapturedAt(new Date().toISOString());
+        showToast(copy.toasts.photoCaptured);
+        resetPhotoInputs();
     };
 
     const submitReport = async () => {
@@ -417,7 +380,6 @@ export default function Home() {
         formData.append('photoCapturedAt', photoCapturedAt);
         formData.append('locationCapturedAt', locationCapturedAt);
         formData.append('locationAccuracy', String(locationAccuracy));
-        formData.append('locationSource', locationSource || 'device');
 
         setReportBusy(true);
         try {
@@ -440,7 +402,6 @@ export default function Home() {
             setPhotoCapturedAt('');
             setLocationCapturedAt('');
             setLocationPermissionState('idle');
-            setLocationSource(null);
             setDescription('');
             setSeverity('Medium');
             setPhotoConsent(false);
@@ -487,8 +448,8 @@ export default function Home() {
         : [];
 
     const pageClass = (page: PageId) => `page${currentPage === page ? ' active' : ''}`;
-    const reportSubmitDisabled = reportBusy || locationBusy || photoExifBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100;
-    const submitBlockedReason = reportBusy || locationBusy || photoExifBusy
+    const reportSubmitDisabled = reportBusy || locationBusy || !photoConsent || !photoFile || !latitude || !longitude || locationAccuracy === null || locationAccuracy > 100;
+    const submitBlockedReason = reportBusy || locationBusy
         ? copy.submitBlockedBusy
         : !photoConsent
             ? copy.submitBlockedConsent
@@ -633,36 +594,30 @@ export default function Home() {
                         <div className="field">
                             <label>{copy.stepPhoto}</label>
                             <label className="consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /><span>{copy.photoConsentBefore} {copy.photoConsentAfter} <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>{copy.learnMore}</button></span></label>
-                            <input ref={photoCameraInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => void handlePhotoSelected(event.target.files?.[0] || null, 'camera')} />
-                            <input ref={photoUploadInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void handlePhotoSelected(event.target.files?.[0] || null, 'upload')} />
+                            <input ref={photoCameraInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
+                            <input ref={photoUploadInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
                             <div className="upload">
-                                <button type="button" disabled={!photoConsent || locationBusy || photoExifBusy} onClick={() => photoCameraInputRef.current?.click()}>{copy.takePhoto}</button>
-                                <button type="button" disabled={!photoConsent || locationBusy || photoExifBusy} onClick={() => photoUploadInputRef.current?.click()}>{copy.uploadPhoto}</button>
+                                <button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoCameraInputRef.current?.click()}>{copy.takePhoto}</button>
+                                <button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoUploadInputRef.current?.click()}>{copy.uploadPhoto}</button>
                             </div>
                             <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : copy.photoHint}</small>
                         </div>
                         <div className="field">
                             <label>{copy.stepLocation}</label>
-                            <button className="secondary full-width" type="button" disabled={!photoConsent || !photoFile || locationBusy || photoExifBusy || locationSource === 'photo_exif'} onClick={captureLocation}>
-                                {locationBusy ? copy.capturingLocation : locationPermissionState === 'granted' && locationSource === 'device' ? copy.captureLocationAgain : copy.captureLocation}
+                            <button className="secondary full-width" type="button" disabled={!photoConsent || !photoFile || locationBusy} onClick={captureLocation}>
+                                {locationBusy ? copy.capturingLocation : locationPermissionState === 'granted' ? copy.captureLocationAgain : copy.captureLocation}
                             </button>
                             <div className="location-lock card">
-                                {photoExifBusy
-                                    ? copy.readingPhotoLocation
-                                    : locationBusy
+                                {locationBusy
                                     ? copy.waitingGps
                                     : locationPermissionState === 'unavailable'
                                         ? copy.httpsRequired
                                         : locationPermissionState === 'denied'
                                             ? copy.locationBlocked
                                             : latitude && longitude
-                                                ? locationSource === 'photo_exif'
-                                                    ? <><strong>{copy.locationFromPhotoExif}</strong><span>{latitude}, {longitude}</span><small>{copy.exifAccuracyNote}</small></>
-                                                    : <><strong>{(locationAccuracy || 0) <= 100 ? copy.locationVerified : copy.locationTooLow}</strong><span>{latitude}, {longitude}</span><small>{formatMessage(copy.accuracyRequired, { accuracy: Math.round(locationAccuracy || 0) })}</small></>
+                                                ? <><strong>{(locationAccuracy || 0) <= 100 ? copy.locationVerified : copy.locationTooLow}</strong><span>{latitude}, {longitude}</span><small>{formatMessage(copy.accuracyRequired, { accuracy: Math.round(locationAccuracy || 0) })}</small></>
                                                 : photoFile
-                                                    ? lastPhotoOrigin === 'upload'
-                                                        ? copy.uploadMissingGpsHint
-                                                        : copy.photoReadyCapture
+                                                    ? copy.photoReadyCapture
                                                     : copy.takePhotoFirst}
                             </div>
                             {reportPreviewMarkers.length > 0 && (
