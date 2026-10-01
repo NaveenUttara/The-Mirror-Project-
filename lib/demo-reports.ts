@@ -31,6 +31,7 @@ export function validateReportSubmission(formData: FormData) {
   const photoCapturedAt = requiredText(formData, "photoCapturedAt");
   const locationCapturedAt = requiredText(formData, "locationCapturedAt");
   const locationAccuracy = Number(requiredText(formData, "locationAccuracy"));
+  const locationSource = requiredText(formData, "locationSource") || "device";
   const photoValue = formData.get("photo");
 
   if (!latitudeText || !Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
@@ -48,18 +49,23 @@ export function validateReportSubmission(formData: FormData) {
 
   const photoCaptureTime = Date.parse(photoCapturedAt);
   const locationCaptureTime = Date.parse(locationCapturedAt);
-  const now = Date.now();
-  if (
-    !Number.isFinite(photoCaptureTime)
-    || !Number.isFinite(locationCaptureTime)
-    || now - photoCaptureTime > 15 * 60 * 1000
-    || now - locationCaptureTime > 15 * 60 * 1000
-    || photoCaptureTime - now > 60 * 1000
-    || locationCaptureTime - now > 60 * 1000
-    || Math.abs(photoCaptureTime - locationCaptureTime) > 2 * 60 * 1000
-  ) {
-    return { error: "Take a fresh photo and capture its location again" };
+  if (!Number.isFinite(photoCaptureTime) || !Number.isFinite(locationCaptureTime)) {
+    return { error: "Photograph location metadata is missing or invalid" };
   }
+
+  if (locationSource !== "photo_exif") {
+    const now = Date.now();
+    if (
+      now - photoCaptureTime > 15 * 60 * 1000
+      || now - locationCaptureTime > 15 * 60 * 1000
+      || photoCaptureTime - now > 60 * 1000
+      || locationCaptureTime - now > 60 * 1000
+      || Math.abs(photoCaptureTime - locationCaptureTime) > 2 * 60 * 1000
+    ) {
+      return { error: "Take a fresh photo and capture its location again" };
+    }
+  }
+
   if (!Number.isFinite(locationAccuracy) || locationAccuracy <= 0 || locationAccuracy > 100) {
     return { error: "GPS accuracy must be within 100 metres" };
   }
