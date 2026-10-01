@@ -7,7 +7,6 @@ import {
   listDemoReportsForUser,
 } from "@/lib/demo-store";
 import { authenticateRequest, type AuthenticatedUser } from "@/lib/auth";
-import { notifyReportSubmitted, photoAttachmentFromFile } from "@/lib/report-notify-email";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const PHOTO_EXTENSIONS: Record<string, string> = {
@@ -95,29 +94,14 @@ export async function submitDemoReport(user: AuthenticatedUser, formData: FormDa
     return NextResponse.json({ error: validated.error }, { status: 400 });
   }
 
-  const photoBytes = new Uint8Array(await validated.photoValue.arrayBuffer());
   const report = await createDemoReport({
     citizenId: user.userId,
     latitude: validated.latitude,
     longitude: validated.longitude,
     severity: validated.severity,
     description: validated.description,
-    photoBytes,
+    photoBytes: new Uint8Array(await validated.photoValue.arrayBuffer()),
     mimeType: validated.photoValue.type,
-  });
-
-  const profile = await findDemoUserById(user.userId);
-  void notifyReportSubmitted({
-    reportId: report.reportId,
-    potholePublicId: report.potholePublicId,
-    latitude: validated.latitude,
-    longitude: validated.longitude,
-    severity: validated.severity,
-    description: validated.description,
-    citizenName: profile?.name || "Citizen",
-    citizenPhone: profile?.phone || user.phone,
-    citizenEmail: profile?.email ?? null,
-    photo: photoAttachmentFromFile(validated.photoValue, photoBytes),
   });
 
   return NextResponse.json({
