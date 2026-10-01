@@ -9,7 +9,6 @@ import {
   submitDemoReport,
   validateReportSubmission,
 } from "@/lib/demo-reports";
-import { notifyReportSubmitted, photoAttachmentFromFile } from "@/lib/report-notify-email";
 import { deleteReportPhoto, saveReportPhoto } from "@/lib/report-storage";
 import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy";
 import { shouldUseMedusaBackend } from "@/lib/token-kind";
@@ -41,7 +40,7 @@ type ReportRow = {
   submittedAt: Date;
 };
 
-type UserRow = { name: string; phone: string; email: string | null };
+type UserRow = { name: string };
 
 function apiError(error: unknown) {
   if (error instanceof Error && error.message === "AUTH_REQUIRED") {
@@ -85,10 +84,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validated.error }, { status: 400 });
     }
 
-    const photoBytes = new Uint8Array(await validated.photoValue.arrayBuffer());
     const objectKey = `report-photos/${randomUUID()}${PHOTO_EXTENSIONS[validated.photoValue.type]}`;
     savedPhotoKey = objectKey;
-    await saveReportPhoto(objectKey, photoBytes, validated.photoValue.type);
+    await saveReportPhoto(
+      objectKey,
+      new Uint8Array(await validated.photoValue.arrayBuffer()),
+      validated.photoValue.type,
+    );
 
     const connection = await getConnection();
 
@@ -111,14 +113,6 @@ export async function POST(request: Request) {
 
       const potholePublicId = `MIR-POT-${String(ids.potholeId).padStart(8, "0")}`;
       const citizenReportId = `MIR-RPT-${String(ids.reportId).padStart(8, "0")}`;
-
-      const citizenResult = await connection.execute<UserRow>(
-        `SELECT name AS "name", phone AS "phone", email AS "email"
-           FROM MIRROR_USERS WHERE id = :userId`,
-        { userId: user.userId },
-        { outFormat: oracledb.OUT_FORMAT_OBJECT },
-      );
-      const citizen = citizenResult.rows?.[0];
 
       await connection.execute(
         `INSERT INTO MIRROR_POTHOLES
@@ -190,19 +184,6 @@ export async function POST(request: Request) {
 
       await connection.commit();
 
-      void notifyReportSubmitted({
-        reportId: citizenReportId,
-        potholePublicId,
-        latitude: validated.latitude,
-        longitude: validated.longitude,
-        severity: validated.severity,
-        description: validated.description,
-        citizenName: citizen?.name || "Citizen",
-        citizenPhone: citizen?.phone || user.phone,
-        citizenEmail: citizen?.email ?? null,
-        photo: photoAttachmentFromFile(validated.photoValue, photoBytes),
-      });
-
       return NextResponse.json({
         success: true,
         reportId: citizenReportId,
@@ -246,8 +227,7 @@ export async function GET(request: Request) {
 
     try {
       const userResult = await connection.execute<UserRow>(
-          `SELECT name AS "name", phone AS "phone", email AS "email"
-             FROM MIRROR_USERS WHERE id = :userId`,
+          `SELECT name AS "name" FROM MIRROR_USERS WHERE id = :userId`,
           { userId: user.userId },
           { outFormat: oracledb.OUT_FORMAT_OBJECT },
         );
