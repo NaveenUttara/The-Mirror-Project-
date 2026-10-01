@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDemoPublicImpact } from "@/lib/demo-store";
+import { getPostgresPublicImpact, isPostgresConfigured } from "@/lib/mirror-postgres";
 import { mergePublicImpact, type PublicImpactData } from "@/lib/public-impact-merge";
 import { getMedusaBackendUrl } from "@/lib/medusa-proxy";
 
@@ -24,7 +25,19 @@ async function fetchMedusaPublicImpact(): Promise<PublicImpactData | null> {
 }
 
 export async function GET() {
-  const demoImpact = await getDemoPublicImpact();
+  let impact: PublicImpactData = await getDemoPublicImpact();
+
+  if (isPostgresConfigured()) {
+    try {
+      const postgresImpact = await getPostgresPublicImpact();
+      impact = mergePublicImpact(impact, postgresImpact);
+    } catch (error) {
+      console.error("[public-impact] PostgreSQL request failed:", error);
+    }
+  }
+
   const medusaImpact = await fetchMedusaPublicImpact();
-  return NextResponse.json(mergePublicImpact(demoImpact, medusaImpact));
+  impact = mergePublicImpact(impact, medusaImpact);
+
+  return NextResponse.json(impact);
 }

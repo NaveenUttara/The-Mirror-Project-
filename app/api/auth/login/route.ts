@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { upsertDemoUser } from '@/lib/demo-store';
 import { getJwtSecret } from '@/lib/jwt-secret';
 import { fetchMedusaAuth } from '@/lib/auth-backend';
+import { isPostgresConfigured, loginPostgresUser } from '@/lib/mirror-postgres';
 import { forwardedResponse } from '@/lib/medusa-proxy';
 
 type UserRow = {
@@ -52,6 +53,16 @@ export async function POST(request: Request) {
             return NextResponse.json(
                 { error: 'Enter a valid email address or leave it blank' },
                 { status: 400 },
+            );
+        }
+
+        if (isPostgresConfigured()) {
+            return NextResponse.json(
+                await loginPostgresUser(
+                    normalizedPhone,
+                    normalizedName,
+                    normalizedEmail || null,
+                ),
             );
         }
 

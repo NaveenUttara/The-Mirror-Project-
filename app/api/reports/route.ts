@@ -12,7 +12,12 @@ import {
 import { notifyReportSubmitted, photoAttachmentFromFile } from "@/lib/report-notify-email";
 import { deleteReportPhoto, saveReportPhoto } from "@/lib/report-storage";
 import { forwardedResponse, getMedusaBackendUrl } from "@/lib/medusa-proxy";
-import { shouldUseMedusaBackend } from "@/lib/token-kind";
+import {
+  isPostgresConfigured,
+  listPostgresReports,
+  submitPostgresReport,
+} from "@/lib/mirror-postgres";
+import { getBearerToken, isJwtToken, shouldUseMedusaBackend } from "@/lib/token-kind";
 
 export const runtime = "nodejs";
 
@@ -74,7 +79,12 @@ export async function POST(request: Request) {
       }
     }
 
-    const user = authenticateRequest(request);
+    const user = await authenticateRequest(request);
+    const token = getBearerToken(request);
+
+    if (isPostgresConfigured() && !isJwtToken(token)) {
+      return await submitPostgresReport(user, formData);
+    }
 
     if (!hasOracleConfig()) {
       return await submitDemoReport(user, formData);
@@ -236,7 +246,12 @@ export async function GET(request: Request) {
       }
     }
 
-    const user = authenticateRequest(request);
+    const user = await authenticateRequest(request);
+    const token = getBearerToken(request);
+
+    if (isPostgresConfigured() && !isJwtToken(token)) {
+      return await listPostgresReports(user);
+    }
 
     if (!hasOracleConfig()) {
       return await listDemoReports(user);
