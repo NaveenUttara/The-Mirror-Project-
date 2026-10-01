@@ -115,7 +115,8 @@ export default function Home() {
     const [toastMessage, setToastMessage] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
     const [language, setLanguage] = useState<Language>(() => getStoredLanguage());
-    const photoInputRef = useRef<HTMLInputElement>(null);
+    const photoCameraInputRef = useRef<HTMLInputElement>(null);
+    const photoUploadInputRef = useRef<HTMLInputElement>(null);
     const copy = t(language);
 
     const showToast = (message: string) => {
@@ -296,6 +297,11 @@ export default function Home() {
         );
     };
 
+    const resetPhotoInputs = () => {
+        if (photoCameraInputRef.current) photoCameraInputRef.current.value = '';
+        if (photoUploadInputRef.current) photoUploadInputRef.current.value = '';
+    };
+
     const handlePhotoCaptured = (file: File | null) => {
         setPhotoFile(file);
         setLatitude('');
@@ -311,6 +317,7 @@ export default function Home() {
 
         setPhotoCapturedAt(new Date().toISOString());
         showToast(copy.toasts.photoCaptured);
+        resetPhotoInputs();
     };
 
     const submitReport = async () => {
@@ -370,9 +377,7 @@ export default function Home() {
             setDescription('');
             setSeverity('Medium');
             setPhotoConsent(false);
-            if (photoInputRef.current) {
-                photoInputRef.current.value = '';
-            }
+            resetPhotoInputs();
             await loadReports();
             showPage('success');
             showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
@@ -561,8 +566,12 @@ export default function Home() {
                         <div className="field">
                             <label>{copy.stepPhoto}</label>
                             <label className="consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /><span>{copy.photoConsentBefore} {copy.photoConsentAfter} <button className="text-link" type="button" onClick={() => setLegalType('privacy')}>{copy.learnMore}</button></span></label>
-                            <input ref={photoInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
-                            <div className="upload"><button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoInputRef.current?.click()}>{copy.takePhoto}</button></div>
+                            <input ref={photoCameraInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
+                            <input ref={photoUploadInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => handlePhotoCaptured(event.target.files?.[0] || null)} />
+                            <div className="upload">
+                                <button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoCameraInputRef.current?.click()}>{copy.takePhoto}</button>
+                                <button type="button" disabled={!photoConsent || locationBusy} onClick={() => photoUploadInputRef.current?.click()}>{copy.uploadPhoto}</button>
+                            </div>
                             <small className="muted-text">{photoFile ? `${photoFile.name} · ${(photoFile.size / 1024 / 1024).toFixed(2)} MB` : copy.photoHint}</small>
                         </div>
                         <div className="field">
