@@ -4,6 +4,7 @@ import { MIRROR_MODULE } from "../../../modules/mirror"
 import type { MirrorModuleService } from "../../../modules/mirror/service"
 import { authenticateMirrorRequest } from "../../../lib/mirror-security"
 import { putPhoto, removePhoto } from "../../../lib/r2-storage"
+import { queueAuthorityReportEmail } from "../../../lib/authority-report-email"
 
 const PHOTO_EXTENSIONS: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -38,6 +39,7 @@ function errorResponse(res: MedusaResponse, error: unknown) {
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const service = req.scope.resolve(MIRROR_MODULE) as MirrorModuleService
   const photoService = service as unknown as RuntimePhotoService
+  const requestId = randomUUID()
   let objectKey: string | undefined
   let potholeId: string | undefined
   let reportId: string | undefined
@@ -150,6 +152,25 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       ip_address: req.ip || null,
       occurred_at: new Date(),
       report_id: report.id,
+    })
+
+    const photoExtension = PHOTO_EXTENSIONS[photo.mimetype] || ".jpg"
+    queueAuthorityReportEmail({
+      requestId,
+      reportId: publicReportId,
+      potholeId: pothole.id,
+      latitude,
+      longitude,
+      severity,
+      description: description || null,
+      citizenName: user.name,
+      citizenPhone: user.phone,
+      citizenEmail: user.email ?? null,
+      photo: {
+        filename: `pothole-evidence${photoExtension}`,
+        mimeType: photo.mimetype,
+        buffer: photo.buffer,
+      },
     })
 
     return res.status(201).json({
