@@ -129,6 +129,33 @@ REPORT_NOTIFY_EMAILS=ops@example.com
 
 The message includes report ID, zone, GPS, severity, citizen contact details, a Google Maps link, and the pothole photograph as an attachment. If Resend is not configured, reports still save; email is skipped.
 
+### Railway Medusa path (Gmail SMTP)
+
+When Vercel sets `MEDUSA_BACKEND_URL`, complaint submission is handled by Medusa on Railway. BBMP notification email is sent from the backend after the report is saved (failure is logged only; the complaint is kept).
+
+Add these variables on **Railway** (Gmail App Password recommended):
+
+```text
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-account@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=your-account@gmail.com
+SMTP_CC=your-account@gmail.com
+```
+
+Optional:
+
+```text
+BBMP_EMAIL_TO=you@example.com
+```
+
+When `BBMP_EMAIL_TO` is set, all authority mail goes to that inbox (pilot testing). Zonal routing still appears in the email body. Omit it in production to deliver to BBMP zonal `To` and central `Cc` addresses.
+
+`REPORT_NOTIFY_EMAILS` adds extra `Cc` recipients (comma-separated).
+
+Check Railway logs for `authority_email_sent` or `authority_email_failed`.
+
 ## Run the Medusa backend
 
 Create `backend/apps/backend/.env` from `.env.template`, insert private Neon and Upstash credentials, and never commit that file.
