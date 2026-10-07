@@ -54,6 +54,10 @@ function buildHtml(payload: AuthorityReportEmailPayload, zone: BbmpZoneMatch | n
 }
 
 export function isAuthorityEmailConfigured(): boolean {
+  if (process.env.BBMP_EMAIL_ENABLED !== "true") {
+    return false
+  }
+
   const host = process.env.SMTP_HOST?.trim()
   const user = process.env.SMTP_USER?.trim()
   const pass = process.env.SMTP_PASS?.trim()

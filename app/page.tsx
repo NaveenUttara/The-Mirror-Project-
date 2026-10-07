@@ -18,7 +18,7 @@ import './mirror.css';
 type PhotoPickOrigin = 'camera' | 'upload';
 type LocationSource = 'device' | 'photo_exif';
 
-type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
+type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'impact';
 type LegalType = 'terms' | 'privacy';
 type LocationPermissionState = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable';
 type CitizenReport = {
@@ -117,7 +117,6 @@ export default function Home() {
     const [photoExifBusy, setPhotoExifBusy] = useState(false);
     const [lastPhotoOrigin, setLastPhotoOrigin] = useState<PhotoPickOrigin | null>(null);
     const [reportBusy, setReportBusy] = useState(false);
-    const [latestReportId, setLatestReportId] = useState('');
     const [legalType, setLegalType] = useState<LegalType | null>(null);
     const [toastMessage, setToastMessage] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
@@ -360,12 +359,6 @@ export default function Home() {
         resetPhotoInputs();
     };
 
-    const startAnotherReport = () => {
-        resetReportForm();
-        setLatestReportId('');
-        showPage('report');
-    };
-
     const applyExifLocation = (exif: { latitude: number; longitude: number; capturedAt: string | null }) => {
         const capturedAt = exif.capturedAt || new Date().toISOString();
         setLatitude(exif.latitude.toFixed(7));
@@ -460,11 +453,10 @@ export default function Home() {
                 return;
             }
 
-            setLatestReportId(data.reportId);
             resetReportForm();
             await loadReports();
             void loadPublicImpact();
-            showPage('success');
+            showPage('report');
             showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
         } catch (error) {
             console.error(error);
@@ -705,14 +697,6 @@ export default function Home() {
                         <div className="field"><label htmlFor="description">{copy.stepDescription}</label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} placeholder={copy.descriptionPlaceholder} /></div>
                         <button className="primary full-width report-submit" type="button" disabled={reportSubmitDisabled} onClick={submitReport}>{reportBusy ? copy.submittingReport : copy.reviewSubmit}</button>
                         {reportSubmitDisabled && submitBlockedReason && <p className="submit-blocked-note">{submitBlockedReason}</p>}
-                    </div>
-                </section>
-
-                <section className={pageClass('success')}>
-                    <div className="panel success-panel">
-                        <div className="success-icon">✓</div><div className="eyebrow">{copy.successEyebrow}</div><h2>{copy.successTitle}</h2><p className="sub">{copy.successSub}</p>
-                        <div className="card report-id-card"><div className="muted-text report-id-label">{copy.yourReportId}</div><strong className="report-id">{latestReportId}</strong></div>
-                        <div className="actions centered-actions"><button className="primary" type="button" onClick={startAnotherReport}>{copy.reportAnother}</button><button className="secondary" type="button" onClick={openDashboard}>{copy.trackReportBtn}</button></div>
                     </div>
                 </section>
 
