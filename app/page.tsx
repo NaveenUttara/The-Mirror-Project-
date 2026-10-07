@@ -344,6 +344,28 @@ export default function Home() {
         if (photoUploadInputRef.current) photoUploadInputRef.current.value = '';
     };
 
+    const resetReportForm = () => {
+        setPhotoFile(null);
+        setLatitude('');
+        setLongitude('');
+        setLocationAccuracy(null);
+        setPhotoCapturedAt('');
+        setLocationCapturedAt('');
+        setLocationPermissionState('idle');
+        setLocationSource(null);
+        setLastPhotoOrigin(null);
+        setDescription('');
+        setSeverity('Medium');
+        setPhotoConsent(false);
+        resetPhotoInputs();
+    };
+
+    const startAnotherReport = () => {
+        resetReportForm();
+        setLatestReportId('');
+        showPage('report');
+    };
+
     const applyExifLocation = (exif: { latitude: number; longitude: number; capturedAt: string | null }) => {
         const capturedAt = exif.capturedAt || new Date().toISOString();
         setLatitude(exif.latitude.toFixed(7));
@@ -439,18 +461,7 @@ export default function Home() {
             }
 
             setLatestReportId(data.reportId);
-            setPhotoFile(null);
-            setLatitude('');
-            setLongitude('');
-            setLocationAccuracy(null);
-            setPhotoCapturedAt('');
-            setLocationCapturedAt('');
-            setLocationPermissionState('idle');
-            setLocationSource(null);
-            setDescription('');
-            setSeverity('Medium');
-            setPhotoConsent(false);
-            resetPhotoInputs();
+            resetReportForm();
             await loadReports();
             void loadPublicImpact();
             showPage('success');
@@ -701,7 +712,7 @@ export default function Home() {
                     <div className="panel success-panel">
                         <div className="success-icon">✓</div><div className="eyebrow">{copy.successEyebrow}</div><h2>{copy.successTitle}</h2><p className="sub">{copy.successSub}</p>
                         <div className="card report-id-card"><div className="muted-text report-id-label">{copy.yourReportId}</div><strong className="report-id">{latestReportId}</strong></div>
-                        <div className="actions centered-actions"><button className="primary" type="button" onClick={openDashboard}>{copy.trackReportBtn}</button><button className="secondary" type="button" onClick={openDashboard}>{copy.backDashboard}</button></div>
+                        <div className="actions centered-actions"><button className="primary" type="button" onClick={startAnotherReport}>{copy.reportAnother}</button><button className="secondary" type="button" onClick={openDashboard}>{copy.trackReportBtn}</button></div>
                     </div>
                 </section>
 
