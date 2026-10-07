@@ -153,6 +153,7 @@ export default function Home() {
         try {
             const response = await fetch('/api/reports', {
                 headers: { Authorization: `Bearer ${token}` },
+                cache: 'no-store',
             });
             const data = await response.json().catch(() => ({}));
             if (response.status === 401) {
@@ -176,14 +177,14 @@ export default function Home() {
         }
     };
 
-    const openDashboard = () => {
+    const openDashboard = async () => {
         if (!authToken) {
             showPage('login');
             showToast(copy.toasts.signInRequired);
             return;
         }
         showPage('dashboard');
-        void loadReports();
+        await loadReports();
     };
 
     const openReportEntry = () => {
@@ -451,10 +452,10 @@ export default function Home() {
             setSeverity('Medium');
             setPhotoConsent(false);
             resetPhotoInputs();
-            await loadReports();
-            void loadPublicImpact();
             showPage('success');
             showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
+            void loadReports();
+            void loadPublicImpact();
         } catch (error) {
             console.error(error);
             showToast(copy.toasts.networkSubmit);
