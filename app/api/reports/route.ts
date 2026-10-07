@@ -74,9 +74,7 @@ export async function POST(request: Request) {
         body: formData,
         cache: "no-store",
       });
-      if (response.ok) {
-        return forwardedResponse(response);
-      }
+      return forwardedResponse(response);
     }
 
     const user = await authenticateRequest(request);
@@ -241,9 +239,7 @@ export async function GET(request: Request) {
         headers: { Authorization: request.headers.get("authorization") || "" },
         cache: "no-store",
       });
-      if (response.ok) {
-        return forwardedResponse(response);
-      }
+      return forwardedResponse(response);
     }
 
     const user = await authenticateRequest(request);

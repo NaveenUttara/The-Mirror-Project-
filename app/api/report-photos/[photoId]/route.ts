@@ -33,9 +33,7 @@ export async function GET(
         headers: { Authorization: request.headers.get("authorization") || "" },
         cache: "no-store",
       });
-      if (response.ok) {
-        return forwardedResponse(response);
-      }
+      return forwardedResponse(response);
     }
 
     const user = await authenticateRequest(request);
