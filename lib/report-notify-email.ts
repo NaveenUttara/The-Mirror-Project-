@@ -36,7 +36,7 @@ function parseExtraRecipientList(): string[] {
 }
 
 export function isReportEmailNotifyConfigured(): boolean {
-  return process.env.BBMP_EMAIL_ENABLED === "true"
+  return process.env.BBMP_EMAIL_ENABLED !== "false"
     && Boolean(process.env.RESEND_API_KEY?.trim())
     && Boolean(process.env.REPORT_EMAIL_FROM?.trim());
 }
@@ -71,7 +71,7 @@ function buildHtml(payload: ReportNotifyPayload, zone: BbmpZoneMatch | null): st
 }
 
 export async function sendReportNotificationEmail(payload: ReportNotifyPayload): Promise<void> {
-  if (process.env.BBMP_EMAIL_ENABLED !== "true") {
+  if (process.env.BBMP_EMAIL_ENABLED === "false") {
     return;
   }
 

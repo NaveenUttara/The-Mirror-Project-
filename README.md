@@ -101,7 +101,7 @@ Three photographs created before the R2 change remain under the ignored project 
 
 ## Email alerts when a citizen submits a report
 
-Email alerts are paused by default. Reports are still saved normally; no authority or extra-recipient email is sent unless `BBMP_EMAIL_ENABLED=true` is set in the deployment environment.
+Email alerts are sent when the provider credentials are configured. Set `BBMP_EMAIL_ENABLED=false` on Vercel and Railway to pause authority and extra-recipient email without affecting report submission.
 
 When enabled, after a report is saved successfully, the API emails BBMP using GPS zone routing:
 
@@ -121,7 +121,6 @@ Configure [Resend](https://resend.com) on Vercel or in `.env.local`:
 ```text
 RESEND_API_KEY=re_xxxxxxxx
 REPORT_EMAIL_FROM=reports@your-verified-domain.com
-BBMP_EMAIL_ENABLED=true
 ```
 
 Optional extra inboxes (comma-separated):
@@ -134,7 +133,7 @@ The message includes report ID, zone, GPS, severity, citizen contact details, a 
 
 ### Railway Medusa path (Gmail SMTP)
 
-When Vercel sets `MEDUSA_BACKEND_URL`, complaint submission is handled by Medusa on Railway. Set `BBMP_EMAIL_ENABLED=true` on Railway too to enable BBMP notification email from the backend after the report is saved (failure is logged only; the complaint is kept).
+When Vercel sets `MEDUSA_BACKEND_URL`, complaint submission is handled by Medusa on Railway. Configure its SMTP variables to send BBMP notification email from the backend after the report is saved (failure is logged only; the complaint is kept). Set `BBMP_EMAIL_ENABLED=false` on Railway to pause email.
 
 Add these variables on **Railway** (Gmail App Password recommended):
 

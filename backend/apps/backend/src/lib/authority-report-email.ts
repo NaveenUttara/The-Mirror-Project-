@@ -54,7 +54,7 @@ function buildHtml(payload: AuthorityReportEmailPayload, zone: BbmpZoneMatch | n
 }
 
 export function isAuthorityEmailConfigured(): boolean {
-  if (process.env.BBMP_EMAIL_ENABLED !== "true") {
+  if (process.env.BBMP_EMAIL_ENABLED === "false") {
     return false
   }
 
