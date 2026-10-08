@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer"
+import nodemailer, { type Transporter } from "nodemailer"
 import {
   isInsideBengaluruServiceArea,
   parseExtraRecipientList,
@@ -64,7 +64,7 @@ export function isAuthorityEmailConfigured(): boolean {
   return Boolean(host && user && pass)
 }
 
-function createTransport(): nodemailer.Transporter | null {
+function createTransport(): Transporter | null {
   const host = process.env.SMTP_HOST?.trim()
   const port = Number(process.env.SMTP_PORT || "587")
   const user = process.env.SMTP_USER?.trim()
