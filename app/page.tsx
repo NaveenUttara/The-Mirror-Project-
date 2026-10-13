@@ -30,6 +30,7 @@ type CitizenReport = {
     status: string;
     submittedAt: string;
     photoUrl: string | null;
+    afterPhotoUrl?: string | null;
 };
 type PublicImpact = {
     totalReports: number;
@@ -119,6 +120,10 @@ export default function Home() {
     const [photoExifBusy, setPhotoExifBusy] = useState(false);
     const [lastPhotoOrigin, setLastPhotoOrigin] = useState<PhotoPickOrigin | null>(null);
     const [reportBusy, setReportBusy] = useState(false);
+    const [repairPhotoReportId, setRepairPhotoReportId] = useState('');
+    const [repairPhotoFile, setRepairPhotoFile] = useState<File | null>(null);
+    const [repairCopyEmail, setRepairCopyEmail] = useState('');
+    const [repairBusy, setRepairBusy] = useState(false);
     const [legalType, setLegalType] = useState<LegalType | null>(null);
     const [toastMessage, setToastMessage] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
@@ -167,6 +172,7 @@ export default function Home() {
             }
             setReports(data.reports || []);
             setUserName(data.user?.name || 'Citizen');
+            if (data.user?.email) setProfileEmail(data.user.email);
             return true;
         } catch (error) {
             console.error(error);
@@ -478,6 +484,39 @@ export default function Home() {
         }
     };
 
+    const submitRepairPhoto = async (report: CitizenReport) => {
+        if (!authToken || !repairPhotoFile || !repairCopyEmail.trim()) return;
+        const formData = new FormData();
+        formData.append('photo', repairPhotoFile);
+        formData.append('copyEmail', repairCopyEmail.trim());
+        setRepairBusy(true);
+        try {
+            const response = await fetch(`/api/reports/${encodeURIComponent(report.reportId)}/repair-update`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${authToken}` },
+                body: formData,
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                showToast(data.error || copy.toasts.repairPhotoFailed);
+                return;
+            }
+            setRepairPhotoReportId('');
+            setRepairPhotoFile(null);
+            await loadReports();
+            showToast(data.emailStatus === 'sent'
+                ? copy.toasts.repairPhotoEmailAccepted
+                : data.emailStatus === 'failed'
+                    ? copy.toasts.repairPhotoSavedEmailFailed
+                    : copy.toasts.repairPhotoSavedEmailSkipped);
+        } catch (error) {
+            console.error(error);
+            showToast(copy.toasts.networkSubmit);
+        } finally {
+            setRepairBusy(false);
+        }
+    };
+
     const severityOptions = ['low', 'medium', 'high', 'critical'] as const;
     const underVerificationCount = reports.filter((report) => ['reported', 'submitted', 'under_verification', 'verified', 'assigned'].includes(report.status)).length;
     const inProgressCount = reports.filter((report) => ['in_progress', 'repaired', 'reopened', 'escalated'].includes(report.status)).length;
@@ -643,13 +682,56 @@ export default function Home() {
                                     tabIndex={focusedReportId === report.reportId ? -1 : undefined}
                                     aria-label={focusedReportId === report.reportId ? copy.trackedReport : undefined}
                                 >
-                                    {report.photoUrl
-                                        ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} loadingLabel={copy.loadingPhoto} />
-                                        : <div className="report-photo report-photo-loading">{copy.noPhoto}</div>}
+                                    <div className="repair-evidence">
+                                        <small>{copy.beforePhotoLabel}</small>
+                                        {report.photoUrl
+                                            ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} loadingLabel={copy.loadingPhoto} />
+                                            : <div className="report-photo report-photo-loading">{copy.noPhoto}</div>}
+                                    </div>
                                     <div>
                                         <h4>{report.reportId}</h4>
                                         <p>{Number(report.latitude).toFixed(6)}, {Number(report.longitude).toFixed(6)} · {new Date(report.submittedAt).toLocaleDateString(language === 'kn' ? 'kn-IN' : 'en-IN')}</p>
                                         <a className="maps-link" href={googleMapsUrl(report.latitude, report.longitude)} target="_blank" rel="noopener noreferrer">{copy.openInMaps}</a>
+                                        {report.afterPhotoUrl && (
+                                            <div className="repair-evidence">
+                                                <small>{copy.afterPhotoLabel}</small>
+                                                <ReportPhoto photoUrl={report.afterPhotoUrl} token={authToken} reportId={report.reportId} loadingLabel={copy.loadingPhoto} />
+                                            </div>
+                                        )}
+                                        {repairPhotoReportId === report.reportId ? (
+                                            <div className="repair-update-form">
+                                                <strong>{copy.repairPhotoTitle}</strong>
+                                                <small className="muted-text">{copy.repairPhotoHint}</small>
+                                                <label className="field-label" htmlFor={`repair-photo-${report.reportId}`}>{copy.afterPhotoLabel}</label>
+                                                <input
+                                                    id={`repair-photo-${report.reportId}`}
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/webp"
+                                                    capture="environment"
+                                                    onChange={(event) => setRepairPhotoFile(event.target.files?.[0] || null)}
+                                                />
+                                                <label className="field-label" htmlFor={`repair-email-${report.reportId}`}>{copy.repairCopyEmail}</label>
+                                                <input
+                                                    id={`repair-email-${report.reportId}`}
+                                                    type="email"
+                                                    autoComplete="email"
+                                                    value={repairCopyEmail}
+                                                    onChange={(event) => setRepairCopyEmail(event.target.value)}
+                                                    placeholder={copy.emailPlaceholder}
+                                                    maxLength={254}
+                                                />
+                                                <div className="repair-update-actions">
+                                                    <button type="button" className="primary" disabled={!repairPhotoFile || !repairCopyEmail.trim() || repairBusy} onClick={() => void submitRepairPhoto(report)}>
+                                                        {repairBusy ? copy.repairPhotoSending : copy.repairPhotoSend}
+                                                    </button>
+                                                    <button type="button" className="secondary" disabled={repairBusy} onClick={() => { setRepairPhotoReportId(''); setRepairPhotoFile(null); }}>{copy.close}</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button type="button" className="text-link repair-update-trigger" onClick={() => { setRepairPhotoReportId(report.reportId); setRepairPhotoFile(null); setRepairCopyEmail(profileEmail); }}>
+                                                {copy.repairPhotoAction}
+                                            </button>
+                                        )}
                                     </div>
                                     <div className="report-row-status"><span className={`badge ${report.status === 'closed' ? 'green' : 'orange'}`}>{translateStatus(language, report.status)}</span><br /><small className="muted-text">{report.potholePublicId} · {translateSeverity(language, report.severity)}</small></div>
                                 </div>

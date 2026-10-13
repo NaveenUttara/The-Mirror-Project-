@@ -142,7 +142,7 @@ export async function listDemoReports(user: AuthenticatedUser) {
   }));
 
   return NextResponse.json({
-    user: { name: profile?.name || "Citizen" },
+    user: { name: profile?.name || "Citizen", email: profile?.email || "" },
     reports,
   });
 }

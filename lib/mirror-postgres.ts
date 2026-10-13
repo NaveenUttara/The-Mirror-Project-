@@ -313,12 +313,12 @@ export async function submitPostgresReport(user: AuthenticatedUser, formData: Fo
 export async function listPostgresReports(user: AuthenticatedUser) {
   const sql = getSql();
   const userRows = await sql`
-    SELECT name
+    SELECT name, email
       FROM mirror_user
      WHERE id = ${user.userId}
        AND deleted_at IS NULL
      LIMIT 1
-  ` as Array<{ name: string }>;
+  ` as Array<{ name: string; email: string | null }>;
 
   const reportRows = await sql`
     SELECT r.report_id AS "reportId",
@@ -345,7 +345,7 @@ export async function listPostgresReports(user: AuthenticatedUser) {
   ` as ReportListRow[];
 
   return NextResponse.json({
-    user: { name: userRows[0]?.name || "Citizen" },
+    user: { name: userRows[0]?.name || "Citizen", email: userRows[0]?.email || "" },
     reports: reportRows.map((report) => ({
       reportId: report.reportId,
       potholePublicId: report.potholePublicId,

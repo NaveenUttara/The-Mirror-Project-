@@ -21,6 +21,20 @@ export type ReportNotifyPayload = {
   };
 };
 
+export type RepairUpdateEmailPayload = {
+  reportId: string;
+  potholePublicId: string;
+  latitude: number;
+  longitude: number;
+  severity: string;
+  description: string | null;
+  citizenName: string;
+  citizenPhone: string;
+  citizenEmail: string;
+  beforePhoto: NonNullable<ReportNotifyPayload["photo"]>;
+  afterPhoto: NonNullable<ReportNotifyPayload["photo"]>;
+};
+
 const PHOTO_EXTENSION: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
@@ -164,5 +178,93 @@ export async function notifyReportSubmitted(payload: ReportNotifyPayload): Promi
       reportId: payload.reportId,
       error: error instanceof Error ? error.message : "unknown_error",
     }));
+  }
+}
+
+export async function notifyRepairUpdateSubmitted(payload: RepairUpdateEmailPayload): Promise<"sent" | "skipped" | "failed"> {
+  const skipReason = reportEmailSkipReason();
+  if (skipReason) {
+    console.warn(JSON.stringify({
+      event: "repair_update_email_skipped",
+      provider: "resend",
+      reportId: payload.reportId,
+      reason: skipReason,
+    }));
+    return "skipped";
+  }
+
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.REPORT_EMAIL_FROM?.trim();
+  if (!apiKey || !from) return "skipped";
+
+  const { recipients, zone } = resolveBbmpNotificationRecipients(
+    payload.latitude,
+    payload.longitude,
+    parseExtraRecipientList(),
+  );
+  const zoneLabel = zone ? zone.zoneName : "Central BBMP";
+  const escapedDescription = (payload.description || "(No description provided)")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const attachments = [payload.beforePhoto, payload.afterPhoto].map((photo) => ({
+    filename: photo.filename,
+    content: Buffer.from(photo.bytes).toString("base64"),
+  }));
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: recipients,
+        bcc: [payload.citizenEmail],
+        subject: `[Mirror → BBMP] Road repair photo update — ${payload.reportId}`,
+        html: `
+          <h2>Citizen-submitted road repair update — The Mirror Project → BBMP</h2>
+          <p>The citizen reports that the pothole appears repaired. Please verify the road condition before updating its official status.</p>
+          <p><strong>Report ID:</strong> ${payload.reportId}</p>
+          <p><strong>Pothole ID:</strong> ${payload.potholePublicId}</p>
+          <p><strong>Severity:</strong> ${payload.severity}</p>
+          <p><strong>BBMP zone:</strong> ${zoneLabel}</p>
+          <p><strong>Location:</strong> ${payload.latitude}, ${payload.longitude}</p>
+          <p><a href="${mapsLink(payload.latitude, payload.longitude)}">Open in Google Maps</a></p>
+          <p><strong>Original description:</strong> ${escapedDescription}</p>
+          <p><strong>Attachments:</strong> Before photo and citizen-submitted after photo.</p>
+          <hr />
+          <p><strong>Citizen:</strong> ${payload.citizenName}</p>
+          <p><strong>Phone:</strong> ${payload.citizenPhone}</p>
+          <p><strong>Email:</strong> ${payload.citizenEmail}</p>
+        `.trim(),
+        attachments,
+      }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`Resend API ${response.status}: ${detail.slice(0, 500)}`);
+    }
+
+    const result = await response.json().catch(() => null) as { id?: string } | null;
+    console.info(JSON.stringify({
+      event: "repair_update_email_sent",
+      provider: "resend",
+      reportId: payload.reportId,
+      messageId: result?.id,
+      citizenCopy: true,
+    }));
+    return "sent";
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "repair_update_email_failed",
+      provider: "resend",
+      reportId: payload.reportId,
+      error: error instanceof Error ? error.message : "unknown_error",
+    }));
+    return "failed";
   }
 }

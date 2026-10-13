@@ -39,6 +39,7 @@ type ReportRow = {
   reportId: string;
   potholePublicId: string;
   photoId: number | null;
+  afterPhotoId: number | null;
   latitude: number;
   longitude: number;
   severity: string;
@@ -273,7 +274,11 @@ export async function GET(request: Request) {
                   (SELECT MIN(rp.id)
                      FROM MIRROR_REPORT_PHOTOS rp
                     WHERE rp.report_id = r.id
-                      AND rp.evidence_type = 'before') AS "photoId"
+                      AND rp.evidence_type = 'before') AS "photoId",
+                  (SELECT MAX(rp.id)
+                     FROM MIRROR_REPORT_PHOTOS rp
+                    WHERE rp.report_id = r.id
+                      AND rp.evidence_type = 'after') AS "afterPhotoId"
              FROM MIRROR_REPORTS r
              JOIN MIRROR_POTHOLES p ON p.id = r.pothole_id
             WHERE r.citizen_id = :userId
@@ -283,10 +288,14 @@ export async function GET(request: Request) {
         );
 
       return NextResponse.json({
-        user: { name: userResult.rows?.[0]?.name || "Citizen" },
+        user: {
+          name: userResult.rows?.[0]?.name || "Citizen",
+          email: userResult.rows?.[0]?.email || "",
+        },
         reports: (reportResult.rows || []).map((report) => ({
           ...report,
           photoUrl: report.photoId ? `/api/report-photos/${report.photoId}` : null,
+          afterPhotoUrl: report.afterPhotoId ? `/api/report-photos/${report.afterPhotoId}` : null,
         })),
       });
     } finally {
