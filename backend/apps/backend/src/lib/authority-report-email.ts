@@ -1,4 +1,4 @@
-import nodemailer, { type Transporter } from "nodemailer"
+import nodemailer, { type SentMessageInfo, type Transporter } from "nodemailer"
 import {
   isInsideBengaluruServiceArea,
   parseExtraRecipientList,
@@ -53,15 +53,18 @@ function buildHtml(payload: AuthorityReportEmailPayload, zone: BbmpZoneMatch | n
   `.trim()
 }
 
-export function isAuthorityEmailConfigured(): boolean {
+function authorityEmailSkipReason(): string | null {
   if (process.env.BBMP_EMAIL_ENABLED === "false") {
-    return false
+    return "disabled"
   }
 
-  const host = process.env.SMTP_HOST?.trim()
-  const user = process.env.SMTP_USER?.trim()
-  const pass = process.env.SMTP_PASS?.trim()
-  return Boolean(host && user && pass)
+  const missing = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"]
+    .filter((name) => !process.env[name]?.trim())
+  return missing.length ? `missing_${missing.join("_")}` : null
+}
+
+export function isAuthorityEmailConfigured(): boolean {
+  return authorityEmailSkipReason() === null
 }
 
 function createTransport(): Transporter | null {
@@ -82,7 +85,7 @@ function createTransport(): Transporter | null {
   })
 }
 
-export async function sendAuthorityReportEmail(payload: AuthorityReportEmailPayload): Promise<void> {
+export async function sendAuthorityReportEmail(payload: AuthorityReportEmailPayload): Promise<SentMessageInfo | undefined> {
   if (!isAuthorityEmailConfigured()) {
     return
   }
@@ -112,7 +115,7 @@ export async function sendAuthorityReportEmail(payload: AuthorityReportEmailPayl
     return
   }
 
-  await transport.sendMail({
+  const result = await transport.sendMail({
     from,
     to,
     cc: cc.length ? cc : undefined,
@@ -120,19 +123,29 @@ export async function sendAuthorityReportEmail(payload: AuthorityReportEmailPayl
     html: buildHtml(payload, zone),
     attachments,
   })
+  return result
 }
 
 export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload): void {
-  if (!isAuthorityEmailConfigured()) {
+  const skipReason = authorityEmailSkipReason()
+  if (skipReason) {
+    console.warn(JSON.stringify({
+      event: "authority_email_skipped",
+      requestId: payload.requestId,
+      reportId: payload.reportId,
+      reason: skipReason,
+    }))
     return
   }
 
   void sendAuthorityReportEmail(payload)
-    .then(() => {
+    .then((result) => {
       console.info(JSON.stringify({
         event: "authority_email_sent",
         requestId: payload.requestId,
         reportId: payload.reportId,
+        messageId: result?.messageId,
+        acceptedCount: result?.accepted?.length ?? 0,
       }))
     })
     .catch((error: unknown) => {

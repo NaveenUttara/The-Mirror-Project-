@@ -36,9 +36,17 @@ function parseExtraRecipientList(): string[] {
 }
 
 export function isReportEmailNotifyConfigured(): boolean {
-  return process.env.BBMP_EMAIL_ENABLED !== "false"
-    && Boolean(process.env.RESEND_API_KEY?.trim())
-    && Boolean(process.env.REPORT_EMAIL_FROM?.trim());
+  return reportEmailSkipReason() === null;
+}
+
+function reportEmailSkipReason(): string | null {
+  if (process.env.BBMP_EMAIL_ENABLED === "false") {
+    return "disabled";
+  }
+
+  const missing = ["RESEND_API_KEY", "REPORT_EMAIL_FROM"]
+    .filter((name) => !process.env[name]?.trim());
+  return missing.length ? `missing_${missing.join("_")}` : null;
 }
 
 function mapsLink(latitude: number, longitude: number): string {
@@ -116,6 +124,14 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
     const detail = await response.text().catch(() => "");
     throw new Error(`Resend API ${response.status}: ${detail.slice(0, 500)}`);
   }
+
+  const result = await response.json().catch(() => null) as { id?: string } | null;
+  console.info(JSON.stringify({
+    event: "report_email_sent",
+    provider: "resend",
+    reportId: payload.reportId,
+    messageId: result?.id,
+  }));
 }
 
 export function photoAttachmentFromFile(file: File, bytes: Uint8Array) {
@@ -128,13 +144,25 @@ export function photoAttachmentFromFile(file: File, bytes: Uint8Array) {
 }
 
 export async function notifyReportSubmitted(payload: ReportNotifyPayload): Promise<void> {
-  if (!isReportEmailNotifyConfigured()) {
+  const skipReason = reportEmailSkipReason();
+  if (skipReason) {
+    console.warn(JSON.stringify({
+      event: "report_email_skipped",
+      provider: "resend",
+      reportId: payload.reportId,
+      reason: skipReason,
+    }));
     return;
   }
 
   try {
     await sendReportNotificationEmail(payload);
   } catch (error) {
-    console.error("[report-notify-email]", error);
+    console.error(JSON.stringify({
+      event: "report_email_failed",
+      provider: "resend",
+      reportId: payload.reportId,
+      error: error instanceof Error ? error.message : "unknown_error",
+    }));
   }
 }
