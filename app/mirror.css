@@ -898,6 +898,16 @@
             text-align: center
         }
 
+        .success-panel h2 {
+            margin: 8px 0 10px;
+            font-size: 34px
+        }
+
+        .success-panel > .sub {
+            max-width: 560px;
+            margin: 0 auto
+        }
+
         .success-icon {
             color: var(--green);
             font-size: 58px
@@ -916,11 +926,25 @@
 
         .report-id {
             color: var(--green);
-            font-size: 27px
+            display: block;
+            margin-top: 8px;
+            font-size: 27px;
+            overflow-wrap: anywhere
         }
 
         .centered-actions {
             justify-content: center
+        }
+
+        .centered-actions > button {
+            min-width: 180px
+        }
+
+        .report-row-focused {
+            border-color: var(--green);
+            background: var(--green2);
+            outline: 3px solid color-mix(in srgb, var(--green) 18%, transparent);
+            outline-offset: 2px
         }
 
         .details-badge {

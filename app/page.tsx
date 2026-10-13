@@ -18,7 +18,7 @@ import './mirror.css';
 type PhotoPickOrigin = 'camera' | 'upload';
 type LocationSource = 'device' | 'photo_exif';
 
-type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'impact';
+type PageId = 'home' | 'login' | 'dashboard' | 'report' | 'success' | 'impact';
 type LegalType = 'terms' | 'privacy';
 type LocationPermissionState = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable';
 type CitizenReport = {
@@ -90,6 +90,8 @@ function ReportPhoto({ photoUrl, token, reportId, loadingLabel }: { photoUrl: st
 
 export default function Home() {
     const [currentPage, setCurrentPage] = useState<PageId>('home');
+    const [submittedReportId, setSubmittedReportId] = useState('');
+    const [focusedReportId, setFocusedReportId] = useState('');
     const [phone, setPhone] = useState('');
     const [phoneConsent, setPhoneConsent] = useState(false);
     const [profileName, setProfileName] = useState('');
@@ -175,12 +177,13 @@ export default function Home() {
         }
     };
 
-    const openDashboard = () => {
+    const openDashboard = (reportId = '') => {
         if (!authToken) {
             showPage('login');
             showToast(copy.toasts.signInRequired);
             return;
         }
+        setFocusedReportId(reportId);
         showPage('dashboard');
         void loadReports();
     };
@@ -213,6 +216,15 @@ export default function Home() {
             void loadReports(authToken);
         }
     }, [authToken]);
+
+    useEffect(() => {
+        if (currentPage !== 'dashboard' || reportsBusy || !focusedReportId) return;
+        if (!reports.some((report) => report.reportId === focusedReportId)) return;
+
+        const reportElement = document.getElementById(`report-${focusedReportId}`);
+        reportElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        reportElement?.focus({ preventScroll: true });
+    }, [currentPage, focusedReportId, reports, reportsBusy]);
 
     useEffect(() => {
         if (authToken && currentPage === 'login') {
@@ -453,11 +465,11 @@ export default function Home() {
                 return;
             }
 
+            setSubmittedReportId(data.reportId);
             resetReportForm();
             await loadReports();
             void loadPublicImpact();
-            showPage('report');
-            showToast(`${copy.toasts.reportCreated} ${data.reportId}`);
+            showPage('success');
         } catch (error) {
             console.error(error);
             showToast(copy.toasts.networkSubmit);
@@ -522,7 +534,7 @@ export default function Home() {
                 </button>
                 <nav className="nav" aria-label="Primary navigation">
                     <button type="button" onClick={() => showPage('home')}>{copy.navHome}</button>
-                    <button type="button" onClick={openDashboard}>{copy.navReports}</button>
+                    <button type="button" onClick={() => openDashboard()}>{copy.navReports}</button>
                     <button type="button" onClick={openPublicImpact}>{copy.navImpact}</button>
                     <button className="lang" type="button" onClick={toggleLanguage}>{copy.langToggle}</button>
                 </nav>
@@ -537,7 +549,7 @@ export default function Home() {
                             <p>{copy.heroBody}</p>
                             <div className="actions">
                                 <button className="primary" type="button" onClick={openReportEntry}>{copy.reportPothole}</button>
-                                <button className="secondary" type="button" onClick={openDashboard}>{copy.trackReport}</button>
+                                <button className="secondary" type="button" onClick={() => openDashboard()}>{copy.trackReport}</button>
                             </div>
                         </div>
                         <div className="hero-card">
@@ -624,7 +636,13 @@ export default function Home() {
                             {reportsBusy && <div className="card empty-reports">{copy.loadingReports}</div>}
                             {!reportsBusy && reports.length === 0 && <div className="card empty-reports">{copy.noReports}</div>}
                             {!reportsBusy && reports.map((report) => (
-                                <div className="report-row" key={report.reportId}>
+                                <div
+                                    id={`report-${report.reportId}`}
+                                    className={`report-row${focusedReportId === report.reportId ? ' report-row-focused' : ''}`}
+                                    key={report.reportId}
+                                    tabIndex={focusedReportId === report.reportId ? -1 : undefined}
+                                    aria-label={focusedReportId === report.reportId ? copy.trackedReport : undefined}
+                                >
                                     {report.photoUrl
                                         ? <ReportPhoto photoUrl={report.photoUrl} token={authToken} reportId={report.reportId} loadingLabel={copy.loadingPhoto} />
                                         : <div className="report-photo report-photo-loading">{copy.noPhoto}</div>}
@@ -697,6 +715,24 @@ export default function Home() {
                         <div className="field"><label htmlFor="description">{copy.stepDescription}</label><textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} placeholder={copy.descriptionPlaceholder} /></div>
                         <button className="primary full-width report-submit" type="button" disabled={reportSubmitDisabled} onClick={submitReport}>{reportBusy ? copy.submittingReport : copy.reviewSubmit}</button>
                         {reportSubmitDisabled && submitBlockedReason && <p className="submit-blocked-note">{submitBlockedReason}</p>}
+                    </div>
+                </section>
+
+                <section className={pageClass('success')}>
+                    <div className="panel success-panel" aria-labelledby="report-success-title">
+                        <div className="success-icon" aria-hidden="true">✓</div>
+                        <div className="eyebrow">{copy.reportReceived}</div>
+                        <h2 id="report-success-title">{copy.reportSubmittedSuccessfully}</h2>
+                        <p className="sub">{copy.reportRecordedAndTracked}</p>
+                        <div className="card report-id-card">
+                            <span className="report-id-label">{copy.yourReportId}</span>
+                            <strong className="report-id">{submittedReportId}</strong>
+                        </div>
+                        <div className="actions centered-actions">
+                            <button className="primary" type="button" onClick={() => openDashboard(submittedReportId)}>{copy.trackSubmittedReport}</button>
+                            <button className="secondary" type="button" onClick={() => { resetReportForm(); openReportEntry(); }}>{copy.reportAnotherPothole}</button>
+                            <button className="secondary" type="button" onClick={() => showPage('home')}>{copy.backHome}</button>
+                        </div>
                     </div>
                 </section>
 
