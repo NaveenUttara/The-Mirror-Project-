@@ -25,8 +25,10 @@ const PHOTO_EXTENSIONS: Record<string, string> = {
 
 type RepairReportRow = {
   id: number;
+  potholeId: number;
   reportId: string;
   potholePublicId: string;
+  currentStatus: string;
   latitude: number;
   longitude: number;
   severity: string;
@@ -83,8 +85,10 @@ export async function POST(
     try {
       const reportResult = await connection.execute<RepairReportRow>(
         `SELECT r.id AS "id",
+                p.id AS "potholeId",
                 r.report_id AS "reportId",
                 p.public_id AS "potholePublicId",
+                p.current_status AS "currentStatus",
                 p.latitude AS "latitude",
                 p.longitude AS "longitude",
                 p.severity AS "severity",
@@ -153,6 +157,26 @@ export async function POST(
           details: JSON.stringify({ photoId, evidenceType: "after" }),
         },
       );
+      if (report.currentStatus !== "closed") {
+        await connection.execute(
+          `UPDATE MIRROR_POTHOLES
+              SET current_status = 'closed', updated_at = SYSTIMESTAMP
+            WHERE id = :potholeId`,
+          { potholeId: report.potholeId },
+        );
+        await connection.execute(
+          `INSERT INTO MIRROR_STATUS_HISTORY
+             (id, report_id, old_status, new_status, changed_by, comments)
+           VALUES
+             (MIRROR_STATUS_SEQ.NEXTVAL, :reportId, :oldStatus, 'closed', :changedBy, :comments)`,
+          {
+            reportId: report.id,
+            oldStatus: report.currentStatus,
+            changedBy: user.userId,
+            comments: "Closed after citizen submitted a road-fixed photo",
+          },
+        );
+      }
       await connection.commit();
       photoCommitted = true;
     } catch (error) {
@@ -192,6 +216,7 @@ export async function POST(
       success: true,
       reportId: report!.reportId,
       afterPhotoUrl: `/api/report-photos/${photoId}`,
+      status: "closed",
       emailStatus,
     }, { status: 201 });
   } catch (error) {

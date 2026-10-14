@@ -727,7 +727,7 @@ export default function Home() {
                                                     <button type="button" className="secondary" disabled={repairBusy} onClick={() => { setRepairPhotoReportId(''); setRepairPhotoFile(null); }}>{copy.close}</button>
                                                 </div>
                                             </div>
-                                        ) : (
+                                        ) : report.status !== 'closed' && (
                                             <button type="button" className="text-link repair-update-trigger" onClick={() => { setRepairPhotoReportId(report.reportId); setRepairPhotoFile(null); setRepairCopyEmail(profileEmail); }}>
                                                 {copy.repairPhotoAction}
                                             </button>

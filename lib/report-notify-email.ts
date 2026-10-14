@@ -226,7 +226,7 @@ export async function notifyRepairUpdateSubmitted(payload: RepairUpdateEmailPayl
         subject: `[Mirror → BBMP] Road repair photo update — ${payload.reportId}`,
         html: `
           <h2>Citizen-submitted road repair update — The Mirror Project → BBMP</h2>
-          <p>The citizen reports that the pothole appears repaired. Please verify the road condition before updating its official status.</p>
+          <p>The citizen submitted a current road-fixed photo. The Mirror Project has closed this report; please verify the road condition and contact the citizen if further action is required.</p>
           <p><strong>Report ID:</strong> ${payload.reportId}</p>
           <p><strong>Pothole ID:</strong> ${payload.potholePublicId}</p>
           <p><strong>Severity:</strong> ${payload.severity}</p>
