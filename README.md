@@ -131,6 +131,24 @@ REPORT_NOTIFY_EMAILS=ops@example.com
 
 The message includes report ID, zone, GPS, severity, citizen contact details, a Google Maps link, and the pothole photograph as an attachment. If Resend is not configured, reports still save; email is skipped.
 
+Verify Resend credentials locally (does not print the API key):
+
+```powershell
+npm run resend:check
+```
+
+### Vercel logs after submitting a report
+
+Search runtime logs for `report_email_`:
+
+| Log event | Meaning |
+| --- | --- |
+| `report_email_sent` | Resend accepted the BBMP notification. |
+| `report_email_failed` | Send was attempted but failed (see `error`). |
+| `report_email_skipped` | `RESEND_API_KEY` or `REPORT_EMAIL_FROM` is missing, or `BBMP_EMAIL_ENABLED=false`. |
+
+If `error` contains `Resend API 401`, Resend rejected `RESEND_API_KEY` (revoked, truncated, extra spaces, or wrapped in quotes). Create a new key in Resend → API Keys, set it on **Vercel → Project → Settings → Environment Variables** for **Production**, redeploy, then submit a **new** report (older reports are not resent automatically). In Resend → Emails, search by the new report ID (for example `MIR-RPT-00000011`).
+
 ### Railway Medusa path (Gmail SMTP)
 
 When Vercel sets `MEDUSA_BACKEND_URL`, complaint submission is handled by Medusa on Railway. Configure its SMTP variables to send BBMP notification email from the backend after the report is saved (failure is logged only; the complaint is kept). Set `BBMP_EMAIL_ENABLED=false` on Railway to pause email.

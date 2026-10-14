@@ -41,6 +41,23 @@ const PHOTO_EXTENSION: Record<string, string> = {
   "image/webp": ".webp",
 };
 
+/** Trim and strip accidental wrapping quotes from Vercel / .env paste mistakes. */
+function normalizeEnvSecret(value: string | undefined): string {
+  if (!value) return "";
+  let trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+    || (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
+function resendApiKey(): string {
+  return normalizeEnvSecret(process.env.RESEND_API_KEY);
+}
+
 function parseExtraRecipientList(): string[] {
   const raw = process.env.REPORT_NOTIFY_EMAILS || "";
   return raw
@@ -58,8 +75,10 @@ function reportEmailSkipReason(): string | null {
     return "disabled";
   }
 
-  const missing = ["RESEND_API_KEY", "REPORT_EMAIL_FROM"]
-    .filter((name) => !process.env[name]?.trim());
+  const missing = [
+    !resendApiKey() ? "RESEND_API_KEY" : null,
+    !normalizeEnvSecret(process.env.REPORT_EMAIL_FROM) ? "REPORT_EMAIL_FROM" : null,
+  ].filter((name): name is string => Boolean(name));
   return missing.length ? `missing_${missing.join("_")}` : null;
 }
 
@@ -97,8 +116,8 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
     return;
   }
 
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.REPORT_EMAIL_FROM?.trim();
+  const apiKey = resendApiKey();
+  const from = normalizeEnvSecret(process.env.REPORT_EMAIL_FROM);
 
   if (!apiKey || !from) {
     return;
@@ -193,8 +212,8 @@ export async function notifyRepairUpdateSubmitted(payload: RepairUpdateEmailPayl
     return "skipped";
   }
 
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.REPORT_EMAIL_FROM?.trim();
+  const apiKey = resendApiKey();
+  const from = normalizeEnvSecret(process.env.REPORT_EMAIL_FROM);
   if (!apiKey || !from) return "skipped";
 
   const { recipients, zone } = resolveBbmpNotificationRecipients(
