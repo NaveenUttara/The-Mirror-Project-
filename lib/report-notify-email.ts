@@ -3,6 +3,7 @@ import {
   resolveBbmpNotificationRecipients,
   type BbmpZoneMatch,
 } from "@/lib/bbmp-zone-mail";
+import { sendResendToEachRecipient } from "@/lib/resend-delivery";
 
 export type ReportNotifyPayload = {
   reportId: string;
@@ -119,32 +120,47 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
 
   const zoneLabel = zone ? zone.zoneName : "Central BBMP";
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: recipients,
-      subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
-      html: buildHtml(payload, zone),
-      attachments,
-    }),
+  const subject = `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`;
+  const html = buildHtml(payload, zone);
+  const { results, acceptedCount } = await sendResendToEachRecipient({
+    apiKey,
+    from,
+    recipients,
+    subject,
+    html,
+    attachments,
   });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`Resend API ${response.status}: ${detail.slice(0, 500)}`);
+  for (const result of results) {
+    if (result.ok) {
+      console.info(JSON.stringify({
+        event: "report_email_recipient_sent",
+        provider: "resend",
+        reportId: payload.reportId,
+        recipient: result.recipient,
+        messageId: result.messageId,
+      }));
+    } else {
+      console.error(JSON.stringify({
+        event: "report_email_recipient_failed",
+        provider: "resend",
+        reportId: payload.reportId,
+        recipient: result.recipient,
+        error: result.error,
+      }));
+    }
   }
 
-  const result = await response.json().catch(() => null) as { id?: string } | null;
+  if (acceptedCount === 0) {
+    const detail = results.map((entry) => `${entry.recipient}: ${entry.error}`).join("; ");
+    throw new Error(detail || "no_recipients");
+  }
+
   console.info(JSON.stringify({
     event: "report_email_sent",
     provider: "resend",
     reportId: payload.reportId,
-    messageId: result?.id,
+    acceptedCount,
   }));
 }
 
@@ -212,19 +228,7 @@ export async function notifyRepairUpdateSubmitted(payload: RepairUpdateEmailPayl
     content: Buffer.from(photo.bytes).toString("base64"),
   }));
 
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: recipients,
-        bcc: [payload.citizenEmail],
-        subject: `[Mirror → BBMP] Road repair photo update — ${payload.reportId}`,
-        html: `
+  const repairHtml = `
           <h2>Citizen-submitted road repair update — The Mirror Project → BBMP</h2>
           <p>The citizen submitted a current road-fixed photo. The Mirror Project has closed this report; please verify the road condition and contact the citizen if further action is required.</p>
           <p><strong>Report ID:</strong> ${payload.reportId}</p>
@@ -239,23 +243,41 @@ export async function notifyRepairUpdateSubmitted(payload: RepairUpdateEmailPayl
           <p><strong>Citizen:</strong> ${payload.citizenName}</p>
           <p><strong>Phone:</strong> ${payload.citizenPhone}</p>
           <p><strong>Email:</strong> ${payload.citizenEmail}</p>
-        `.trim(),
-        attachments,
-      }),
+        `.trim();
+  const repairSubject = `[Mirror → BBMP] Road repair photo update — ${payload.reportId}`;
+
+  try {
+    const authoritySend = await sendResendToEachRecipient({
+      apiKey,
+      from,
+      recipients,
+      subject: repairSubject,
+      html: repairHtml,
+      attachments,
     });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new Error(`Resend API ${response.status}: ${detail.slice(0, 500)}`);
+    const citizenSend = await sendResendToEachRecipient({
+      apiKey,
+      from,
+      recipients: [payload.citizenEmail],
+      subject: repairSubject,
+      html: repairHtml,
+      attachments,
+    });
+
+    const acceptedCount = authoritySend.acceptedCount + citizenSend.acceptedCount;
+    if (authoritySend.acceptedCount === 0) {
+      const detail = authoritySend.results.map((entry) => `${entry.recipient}: ${entry.error}`).join("; ");
+      throw new Error(detail || "no_recipients");
     }
 
-    const result = await response.json().catch(() => null) as { id?: string } | null;
     console.info(JSON.stringify({
       event: "repair_update_email_sent",
       provider: "resend",
       reportId: payload.reportId,
-      messageId: result?.id,
-      citizenCopy: true,
+      authorityAcceptedCount: authoritySend.acceptedCount,
+      citizenCopySent: citizenSend.acceptedCount > 0,
+      acceptedCount,
     }));
     return "sent";
   } catch (error) {

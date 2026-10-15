@@ -152,11 +152,13 @@ Optional:
 BBMP_EMAIL_TO=you@example.com
 ```
 
-When `BBMP_EMAIL_TO` is set, all authority mail goes to that inbox (pilot testing). Zonal routing still appears in the email body. Omit it in production to deliver to BBMP zonal `To` and central `Cc` addresses.
+When `BBMP_EMAIL_TO` is set, all authority mail goes to that inbox (pilot testing). Zonal routing still appears in the email body. **Other BBMP addresses are not emailed until you remove `BBMP_EMAIL_TO` and redeploy.** Omit it in production to deliver to the zonal commissioner plus central BBMP inboxes.
 
-`REPORT_NOTIFY_EMAILS` adds extra `Cc` recipients (comma-separated).
+`REPORT_NOTIFY_EMAILS` adds extra recipients (comma-separated).
 
-Check Railway logs for `authority_email_sent` or `authority_email_failed`.
+Each authority inbox gets its own Resend send (not one message with Cc). Check Railway or Vercel logs for `authority_email_recipient_sent`, `authority_email_recipient_failed`, `authority_email_sent`, or `authority_email_failed`. If only your Gmail works, verify your sending domain in Resend so `@bbmp.gov.in` addresses are allowed.
+
+Complaints already saved before email was fixed are not resent automatically; submit a new test report or forward the delivered copy to the remaining BBMP addresses.
 
 ## Run the Medusa backend
 

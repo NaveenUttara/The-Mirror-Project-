@@ -4,6 +4,7 @@ import {
   resolveBbmpMailTargets,
   type BbmpZoneMatch,
 } from "./bbmp-zone-mail"
+import { sendResendToEachRecipient } from "./resend-delivery"
 
 export type AuthorityReportEmailPayload = {
   requestId: string
@@ -91,29 +92,42 @@ export async function sendAuthorityReportEmail(
     }]
     : undefined
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      cc: cc.length ? cc : undefined,
-      subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
-      html: buildHtml(payload, zone),
-      attachments,
-    }),
+  const subject = `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`
+  const html = buildHtml(payload, zone)
+  const { results, acceptedCount } = await sendResendToEachRecipient({
+    apiKey,
+    from,
+    recipients: [...to, ...cc],
+    subject,
+    html,
+    attachments,
   })
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "")
-    throw new Error(`Resend API ${response.status}: ${detail.slice(0, 500)}`)
+  for (const result of results) {
+    if (result.ok) {
+      console.info(JSON.stringify({
+        event: "authority_email_recipient_sent",
+        reportId: payload.reportId,
+        recipient: result.recipient,
+        messageId: result.messageId,
+      }))
+    } else {
+      console.error(JSON.stringify({
+        event: "authority_email_recipient_failed",
+        reportId: payload.reportId,
+        recipient: result.recipient,
+        error: result.error,
+      }))
+    }
   }
 
-  const result = await response.json().catch(() => null) as { id?: string } | null
-  return { messageId: result?.id, acceptedCount: to.length + cc.length }
+  if (acceptedCount === 0) {
+    const detail = results.map((entry) => `${entry.recipient}: ${entry.error}`).join("; ")
+    throw new Error(detail || "no_recipients")
+  }
+
+  const firstSuccess = results.find((entry) => entry.ok)
+  return { messageId: firstSuccess?.messageId, acceptedCount }
 }
 
 export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload): void {
@@ -142,7 +156,7 @@ export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload):
       const message = error instanceof Error ? error.message : "unknown_error"
       console.error(JSON.stringify({
         event: "authority_email_failed",
-      stage: "resend_send",
+        stage: "resend_send",
         requestId: payload.requestId,
         reportId: payload.reportId,
         error: message,
