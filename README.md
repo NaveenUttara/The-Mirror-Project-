@@ -162,7 +162,7 @@ Each authority inbox gets its own Resend send (not one message with Cc). Check R
 
 The app does not store per-inbox delivery in the database. Use **logs** or the **resend API**:
 
-1. In **Railway** logs, search for the public report id (for example `MR-2026-00042`).
+1. In **Railway** logs, search for the public report id (for example `MIR-RPT-XXXXXXXX-XXXXXX` from the app or API).
 2. Look for `authority_email_recipient_failed` lines, or `failedRecipients` inside `authority_email_sent`.
 
 To **resend** (Medusa / Railway), set a secret and call the admin API:
@@ -197,6 +197,37 @@ curl -s -X POST "https://YOUR-RAILWAY-URL/mirror/reports/MIR-RPT-XXXXXXXX-XXXXXX
 ```
 
 The JSON response lists `sent` and `failed` for that attempt. You can also check the [Resend](https://resend.com) dashboard per message id from the logs.
+
+### Backfill email for old reports (only some were sent)
+
+If reports like `MIR-RPT-00000013` and `MIR-RPT-00000014` already received BBMP mail but **earlier reports did not**, run a **backfill** after deploy (set `REPORT_EMAIL_RESEND_SECRET` on Vercel and/or Railway).
+
+**1. See how many need sending** (Oracle/Postgres on Vercel):
+
+```bash
+curl -s "https://YOUR-VERCEL-URL/api/admin/authority-email-backfill" \
+  -H "X-Mirror-Email-Secret: YOUR_SECRET"
+```
+
+**2. Send in batches** (skips 13 and 14; processes 20 reports per call):
+
+```bash
+curl -s -X POST "https://YOUR-VERCEL-URL/api/admin/authority-email-backfill" \
+  -H "X-Mirror-Email-Secret: YOUR_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "excludeReportIds": ["MIR-RPT-00000013", "MIR-RPT-00000014"],
+    "limit": 20,
+    "offset": 0
+  }'
+```
+
+**3. Repeat** until the response shows `"done": true`, increasing `offset` to the value in `nextOffset` each time (or use `continueWith` from the JSON).
+
+Dry run (no mail): add `"dryRun": true`.
+
+If complaints live in **Medusa on Railway** instead, POST to  
+`https://YOUR-RAILWAY-URL/mirror/reports/authority-email/backfill` with the same JSON and secret header, or POST to Vercel with `"useMedusa": true`.
 
 ## Run the Medusa backend
 
