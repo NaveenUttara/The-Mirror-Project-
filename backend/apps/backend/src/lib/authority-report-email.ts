@@ -67,9 +67,18 @@ export function isAuthorityEmailConfigured(): boolean {
   return authorityEmailSkipReason() === null
 }
 
+export type AuthorityEmailDeliverySummary = {
+  messageId?: string
+  intendedRecipients: string[]
+  sent: string[]
+  failed: Array<{ recipient: string; error: string }>
+  acceptedCount: number
+}
+
 export async function sendAuthorityReportEmail(
   payload: AuthorityReportEmailPayload,
-): Promise<{ messageId?: string; acceptedCount: number } | undefined> {
+  options?: { onlyRecipients?: string[] },
+): Promise<AuthorityEmailDeliverySummary | undefined> {
   if (!isAuthorityEmailConfigured()) {
     return
   }
@@ -92,16 +101,31 @@ export async function sendAuthorityReportEmail(
     }]
     : undefined
 
+  const intendedRecipients = [...new Set([...to, ...cc])]
+  const only = options?.onlyRecipients?.map((entry) => entry.trim()).filter(Boolean)
+  const recipientsToSend = only?.length
+    ? intendedRecipients.filter((entry) => only.includes(entry))
+    : intendedRecipients
+
+  if (only?.length && recipientsToSend.length === 0) {
+    throw new Error("no_matching_recipients")
+  }
+
   const subject = `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`
   const html = buildHtml(payload, zone)
   const { results, acceptedCount } = await sendResendToEachRecipient({
     apiKey,
     from,
-    recipients: [...to, ...cc],
+    recipients: recipientsToSend,
     subject,
     html,
     attachments,
   })
+
+  const sent = results.filter((entry) => entry.ok).map((entry) => entry.recipient)
+  const failed = results
+    .filter((entry) => !entry.ok)
+    .map((entry) => ({ recipient: entry.recipient, error: entry.error || "unknown_error" }))
 
   for (const result of results) {
     if (result.ok) {
@@ -127,7 +151,13 @@ export async function sendAuthorityReportEmail(
   }
 
   const firstSuccess = results.find((entry) => entry.ok)
-  return { messageId: firstSuccess?.messageId, acceptedCount }
+  return {
+    messageId: firstSuccess?.messageId,
+    intendedRecipients,
+    sent,
+    failed,
+    acceptedCount,
+  }
 }
 
 export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload): void {
@@ -150,6 +180,9 @@ export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload):
         reportId: payload.reportId,
         messageId: result?.messageId,
         acceptedCount: result?.acceptedCount ?? 0,
+        intendedRecipients: result?.intendedRecipients ?? [],
+        sentRecipients: result?.sent ?? [],
+        failedRecipients: result?.failed ?? [],
       }))
     })
     .catch((error: unknown) => {

@@ -156,11 +156,19 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
     throw new Error(detail || "no_recipients");
   }
 
+  const sentRecipients = results.filter((entry) => entry.ok).map((entry) => entry.recipient);
+  const failedRecipients = results
+    .filter((entry) => !entry.ok)
+    .map((entry) => ({ recipient: entry.recipient, error: entry.error || "unknown_error" }));
+
   console.info(JSON.stringify({
     event: "report_email_sent",
     provider: "resend",
     reportId: payload.reportId,
     acceptedCount,
+    intendedRecipients: recipients,
+    sentRecipients,
+    failedRecipients,
   }));
 }
 

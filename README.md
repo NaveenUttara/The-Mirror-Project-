@@ -158,7 +158,45 @@ When `BBMP_EMAIL_TO` is set, all authority mail goes to that inbox (pilot testin
 
 Each authority inbox gets its own Resend send (not one message with Cc). Check Railway or Vercel logs for `authority_email_recipient_sent`, `authority_email_recipient_failed`, `authority_email_sent`, or `authority_email_failed`. If only your Gmail works, verify your sending domain in Resend so `@bbmp.gov.in` addresses are allowed.
 
-Complaints already saved before email was fixed are not resent automatically; submit a new test report or forward the delivered copy to the remaining BBMP addresses.
+### Which inboxes failed, and resending them
+
+The app does not store per-inbox delivery in the database. Use **logs** or the **resend API**:
+
+1. In **Railway** logs, search for the public report id (for example `MR-2026-00042`).
+2. Look for `authority_email_recipient_failed` lines, or `failedRecipients` inside `authority_email_sent`.
+
+To **resend** (Medusa / Railway), set a secret and call the admin API:
+
+```text
+REPORT_EMAIL_RESEND_SECRET=choose-a-long-random-string
+```
+
+**Who should get mail for one report** (from GPS):
+
+```bash
+curl -s "https://YOUR-RAILWAY-URL/mirror/reports/MIR-RPT-XXXXXXXX-XXXXXX/authority-email" \
+  -H "X-Mirror-Email-Secret: YOUR_SECRET"
+```
+
+**Resend only addresses that failed** (paste from logs):
+
+```bash
+curl -s -X POST "https://YOUR-RAILWAY-URL/mirror/reports/MIR-RPT-XXXXXXXX-XXXXXX/authority-email" \
+  -H "X-Mirror-Email-Secret: YOUR_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"recipients":["zc-east@bbmp.gov.in","comm@bbmp.gov.in"]}'
+```
+
+**Resend to every intended inbox** for that report (omit `recipients`):
+
+```bash
+curl -s -X POST "https://YOUR-RAILWAY-URL/mirror/reports/MIR-RPT-XXXXXXXX-XXXXXX/authority-email" \
+  -H "X-Mirror-Email-Secret: YOUR_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The JSON response lists `sent` and `failed` for that attempt. You can also check the [Resend](https://resend.com) dashboard per message id from the logs.
 
 ## Run the Medusa backend
 

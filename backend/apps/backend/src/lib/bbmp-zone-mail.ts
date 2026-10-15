@@ -142,3 +142,14 @@ export function resolveBbmpMailTargets(
     zone: null,
   }
 }
+
+/** All BBMP / extra inboxes that should receive a complaint at this GPS. */
+export function listIntendedAuthorityRecipients(
+  latitude: number,
+  longitude: number,
+  extraRecipients: string[] = parseExtraRecipientList(),
+): { recipients: string[]; zone: BbmpZoneMatch | null } {
+  const { to, cc, zone } = resolveBbmpMailTargets(latitude, longitude, extraRecipients)
+  const recipients = [...new Set([...to, ...cc])]
+  return { recipients, zone }
+}
