@@ -9,7 +9,7 @@ export type BbmpZoneMatch = {
 /** Always notified for every complaint registered through Mirror. */
 export const BBMP_CENTRAL_EMAILS = [
   "comm@bbmp.gov.in",
-  "contactusbbmp@gmail.com",
+  "pwdminister444@gmail.com",
 ] as const;
 
 const BBMP_ZONES: Array<{

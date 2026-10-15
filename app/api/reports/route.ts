@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import oracledb from "oracledb";
 import { authenticateRequest } from "@/lib/auth";
 import { getConnection } from "@/lib/db";
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
 
       await connection.commit();
 
-      void notifyReportSubmitted({
+      after(() => notifyReportSubmitted({
         reportId: citizenReportId,
         potholePublicId,
         latitude: validated.latitude,
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
         citizenPhone: citizen?.phone || user.phone,
         citizenEmail: citizen?.email ?? null,
         photo: photoAttachmentFromFile(validated.photoValue, photoBytes),
-      });
+      }));
 
       return NextResponse.json({
         success: true,

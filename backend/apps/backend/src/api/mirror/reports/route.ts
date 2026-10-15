@@ -11,6 +11,7 @@ const PHOTO_EXTENSIONS: Record<string, string> = {
   "image/png": ".png",
   "image/webp": ".webp",
 }
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const SEVERITIES = new Set(["low", "medium", "high", "critical"])
 
 // Medusa's runtime pluralizer uses "Photos". Its generated TypeScript type
@@ -73,6 +74,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
     if (!photo || !PHOTO_EXTENSIONS[photo.mimetype]) {
       return res.status(400).json({ error: "A JPEG, PNG or WebP pothole photograph is required" })
+    }
+    if (photo.size > MAX_PHOTO_BYTES) {
+      return res.status(400).json({ error: "Photograph must be 4 MB or smaller" })
     }
 
     const photoTime = Date.parse(photoCapturedAt)

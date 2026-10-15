@@ -9,7 +9,7 @@ import {
 import { authenticateRequest, type AuthenticatedUser } from "@/lib/auth";
 import { notifyReportSubmitted, photoAttachmentFromFile } from "@/lib/report-notify-email";
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 const PHOTO_EXTENSIONS: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
@@ -77,7 +77,7 @@ export function validateReportSubmission(formData: FormData) {
     return { error: "Photograph must be a JPEG, PNG or WebP image" };
   }
   if (photoValue.size > MAX_PHOTO_BYTES) {
-    return { error: "Photograph must be 5 MB or smaller" };
+    return { error: "Photograph must be 4 MB or smaller" };
   }
 
   return {

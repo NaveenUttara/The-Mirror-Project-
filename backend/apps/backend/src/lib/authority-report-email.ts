@@ -1,4 +1,3 @@
-import nodemailer, { type SentMessageInfo, type Transporter } from "nodemailer"
 import {
   isInsideBengaluruServiceArea,
   parseExtraRecipientList,
@@ -58,7 +57,7 @@ function authorityEmailSkipReason(): string | null {
     return "disabled"
   }
 
-  const missing = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"]
+  const missing = ["RESEND_API_KEY", "REPORT_EMAIL_FROM"]
     .filter((name) => !process.env[name]?.trim())
   return missing.length ? `missing_${missing.join("_")}` : null
 }
@@ -67,33 +66,16 @@ export function isAuthorityEmailConfigured(): boolean {
   return authorityEmailSkipReason() === null
 }
 
-function createTransport(): Transporter | null {
-  const host = process.env.SMTP_HOST?.trim()
-  const port = Number(process.env.SMTP_PORT || "587")
-  const user = process.env.SMTP_USER?.trim()
-  const pass = process.env.SMTP_PASS?.trim()
-
-  if (!host || !user || !pass) {
-    return null
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  })
-}
-
-export async function sendAuthorityReportEmail(payload: AuthorityReportEmailPayload): Promise<SentMessageInfo | undefined> {
+export async function sendAuthorityReportEmail(
+  payload: AuthorityReportEmailPayload,
+): Promise<{ messageId?: string; acceptedCount: number } | undefined> {
   if (!isAuthorityEmailConfigured()) {
     return
   }
 
-  const from = process.env.SMTP_FROM?.trim() || process.env.SMTP_USER?.trim()
-  if (!from) {
-    return
-  }
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  const from = process.env.REPORT_EMAIL_FROM?.trim()
+  if (!apiKey || !from) return
 
   const { to, cc, zone } = resolveBbmpMailTargets(
     payload.latitude,
@@ -105,25 +87,33 @@ export async function sendAuthorityReportEmail(payload: AuthorityReportEmailPayl
   const attachments = payload.photo
     ? [{
       filename: payload.photo.filename,
-      content: payload.photo.buffer,
-      contentType: payload.photo.mimeType,
+      content: payload.photo.buffer.toString("base64"),
     }]
     : undefined
 
-  const transport = createTransport()
-  if (!transport) {
-    return
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      cc: cc.length ? cc : undefined,
+      subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
+      html: buildHtml(payload, zone),
+      attachments,
+    }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "")
+    throw new Error(`Resend API ${response.status}: ${detail.slice(0, 500)}`)
   }
 
-  const result = await transport.sendMail({
-    from,
-    to,
-    cc: cc.length ? cc : undefined,
-    subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
-    html: buildHtml(payload, zone),
-    attachments,
-  })
-  return result
+  const result = await response.json().catch(() => null) as { id?: string } | null
+  return { messageId: result?.id, acceptedCount: to.length + cc.length }
 }
 
 export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload): void {
@@ -145,14 +135,14 @@ export function queueAuthorityReportEmail(payload: AuthorityReportEmailPayload):
         requestId: payload.requestId,
         reportId: payload.reportId,
         messageId: result?.messageId,
-        acceptedCount: result?.accepted?.length ?? 0,
+        acceptedCount: result?.acceptedCount ?? 0,
       }))
     })
     .catch((error: unknown) => {
       const message = error instanceof Error ? error.message : "unknown_error"
       console.error(JSON.stringify({
         event: "authority_email_failed",
-        stage: "smtp_send",
+      stage: "resend_send",
         requestId: payload.requestId,
         reportId: payload.reportId,
         error: message,

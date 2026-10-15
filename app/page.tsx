@@ -47,6 +47,43 @@ type PublicIssue = {
     status: string;
 };
 
+const MAX_REPORT_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_UPLOAD_PHOTO_BYTES = 3.75 * 1024 * 1024;
+
+async function compressReportPhoto(file: File): Promise<File> {
+    const objectUrl = URL.createObjectURL(file);
+    try {
+        const image = new window.Image();
+        image.src = objectUrl;
+        await image.decode();
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Could not prepare photograph');
+
+        let scale = Math.min(1, 2560 / Math.max(image.naturalWidth, image.naturalHeight));
+        for (let dimensionAttempt = 0; dimensionAttempt < 5; dimensionAttempt += 1) {
+            canvas.width = Math.round(image.naturalWidth * scale);
+            canvas.height = Math.round(image.naturalHeight * scale);
+            context.fillStyle = '#fff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            for (const quality of [0.88, 0.8, 0.72, 0.64, 0.56]) {
+                const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+                if (blob && blob.size <= MAX_UPLOAD_PHOTO_BYTES) {
+                    const name = file.name.replace(/\.[^.]+$/, '') || 'report-photo';
+                    return new File([blob], `${name}.jpg`, { type: 'image/jpeg', lastModified: file.lastModified });
+                }
+            }
+            scale *= 0.8;
+        }
+        throw new Error('Could not compress photograph below the upload limit');
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
 const severityColor = (severity: PublicIssue['severity']) => ({
     low: '#2f8f5b',
     medium: '#eab308',
@@ -389,7 +426,7 @@ export default function Home() {
     };
 
     const handlePhotoSelected = async (file: File | null, origin: PhotoPickOrigin) => {
-        setPhotoFile(file);
+        setPhotoFile(null);
         setLatitude('');
         setLongitude('');
         setLocationAccuracy(null);
@@ -403,10 +440,23 @@ export default function Home() {
             return;
         }
 
+        if (file.size > MAX_REPORT_PHOTO_BYTES) {
+            setPhotoFile(null);
+            setPhotoCapturedAt('');
+            setLastPhotoOrigin(null);
+            resetPhotoInputs();
+            showToast(copy.toasts.photoTooLarge);
+            return;
+        }
+
         setLastPhotoOrigin(origin);
         setPhotoExifBusy(true);
         try {
             const exif = await readPhotoExifLocation(file);
+            const uploadFile = file.size > MAX_UPLOAD_PHOTO_BYTES
+                ? await compressReportPhoto(file)
+                : file;
+            setPhotoFile(uploadFile);
             if (exif) {
                 applyExifLocation(exif);
                 showToast(copy.toasts.locationFromPhoto);
@@ -418,6 +468,12 @@ export default function Home() {
                 setPhotoCapturedAt(new Date(file.lastModified).toISOString());
                 showToast(copy.toasts.uploadMissingGps);
             }
+        } catch (error) {
+            console.error(error);
+            setPhotoFile(null);
+            setLastPhotoOrigin(null);
+            resetPhotoInputs();
+            showToast(copy.toasts.photoCompressionFailed);
         } finally {
             setPhotoExifBusy(false);
             resetPhotoInputs();
@@ -467,7 +523,12 @@ export default function Home() {
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showToast(data.error || copy.toasts.submitFailed);
+                const serverError = typeof data.error === 'string'
+                    ? data.error
+                    : typeof data.message === 'string'
+                        ? data.message
+                        : '';
+                showToast(serverError || formatMessage(copy.toasts.submitFailedStatus, { status: response.status }));
                 return;
             }
 
