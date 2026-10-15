@@ -127,6 +127,7 @@ export async function sendReportNotificationEmail(payload: ReportNotifyPayload):
     },
     body: JSON.stringify({
       from,
+      reply_to: "themirrorproject93@gmail.com",
       to: recipients,
       subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
       html: buildHtml(payload, zone),
@@ -221,6 +222,7 @@ export async function notifyRepairUpdateSubmitted(payload: RepairUpdateEmailPayl
       },
       body: JSON.stringify({
         from,
+        reply_to: "themirrorproject93@gmail.com",
         to: recipients,
         bcc: [payload.citizenEmail],
         subject: `[Mirror → BBMP] Road repair photo update — ${payload.reportId}`,

@@ -99,6 +99,7 @@ export async function sendAuthorityReportEmail(
     },
     body: JSON.stringify({
       from,
+      reply_to: "themirrorproject93@gmail.com",
       to,
       cc: cc.length ? cc : undefined,
       subject: `[Mirror → BBMP] ${zoneLabel} — ${payload.reportId} (${payload.severity})`,
